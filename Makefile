@@ -270,7 +270,7 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_WORKSPACE}) workspace and delete ($${_TEMP_WORKSPACE}) workspace? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		terraform workspace select "$${_INITIAL_WORKSPACE}"; \
-		terraform workspace delete --force "${_TEMP_WORKSPACE}"; \
+		terraform workspace delete --force "$${_TEMP_WORKSPACE}"; \
 	fi
 
 plan: _check-ws ## Chart the course before you sail! 🗺️
