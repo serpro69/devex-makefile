@@ -171,16 +171,18 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	fi
 
 	# Configure GCS backend
-	echo "$(__BOLD)Configuring the terraform backend...$(__RESET)"
+	echo "$(__BOLD)Configuring the terraform backend...$(__RESET)"; \
 	_BUCKET_NAME=$$(gcloud storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
 	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
+	_COLOR=$(__GREEN); \
 	[ ! "$(__ENVIRONMENT)" = "test" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
+		_COLOR=$(__RED); \
 	fi; \
-	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"
-	echo "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)"
+	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"; \
+	echo "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)"; \
 	read -p "$(__BOLD)$(__MAGENTA)Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
 		echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
