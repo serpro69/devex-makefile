@@ -3,23 +3,21 @@
 ![TF](https://img.shields.io/badge/Terraform%20Version-%3E%3D1.0.0-purple.svg)
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
 
-## About
-
-This is my [terraform](https://www.terraform.io/) workflow for every terraform project that I use personally/professionaly when working with Google Cloud Platform.
-
-## TOC
-
 <!--toc:start-->
 - [About](#about)
-- [TOC](#toc)
 - [Installation](#installation)
 - [Usage](#usage)
+  - [State Lock](#state-lock)
   - [Considerations](#considerations)
 - [License](#license)
 - [Contribute](#contribute)
 - [Ack](#ack)
 - [TODO](#todo)
 <!--toc:end-->
+
+## About
+
+This is my [terraform](https://www.terraform.io/) workflow for every terraform project that I use personally/professionaly when working with Google Cloud Platform.
 
 ## Installation
 
@@ -72,7 +70,7 @@ plan                           Chart the course before you sail! 🗺️
 validate                       Inspect the rigging and report any issues! 🔍
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Input variables 🧮
+Input variables for 'init' 🧮
 (Note: these are only used with 'init' target!)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -83,6 +81,14 @@ Input variables 🧮
                                (e.g., short company name)
 <QUOTA_PROJECT>                 GCP quota project name
                                (NB! we assume quota project contains the .tfstate bucket)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Input variables 🧮
+(Note: these are used with other targets!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<TF_ARGS>                      󱁢 Additional terraform command arguments
+                               (e.g., make apply TF_ARGS='-out=foo.out -lock=false')
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Dependencies 📦
