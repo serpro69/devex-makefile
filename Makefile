@@ -299,23 +299,27 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	# ensure vars and inputs are available for testing
 	cp vars/$${_INITIAL_WORKSPACE}.tfvars vars/$${_TEMP_WORKSPACE}.tfvars; \
 	cp -r inputs/$${_INITIAL_WORKSPACE} inputs/$${_TEMP_WORKSPACE}; \
-	# init and apply against baseline
-	make init __ENVIRONMENT="test" WORKSPACE="$${_TEMP_WORKSPACE}"; \
-	make apply; \
+	# init
+	make init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
+	# check if we're running in a temp workspace
+	_CURRENT_WORKSPACE=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
+		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)"; \
+		exit 1; \
+	fi
+	# apply against origin baseline
+	make apply NON_INTERACTIVE=true; \
 	# switch back to initial branch
 	git switch -; \
-	# re-initialize terraform to pull latest modules, providers, etc
-	make init __ENVIRONMENT="test"; \
-	# TODO: run plan with -out option
-	# apply to test the new changeset
-	make apply; \
+	# re-initialize terraform to pull latest modules, providers, etc from the changeset under test
+	make init __ENVIRONMENT="test" NON_INTERACTIVE=true; \
+	# apply to test the changeset
+	make apply NON_INTERACTIVE=true; \
 	echo "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)"; \
-	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+	# always ask before destroying!
 	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		make destroy; \
 	fi; \
-	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_WORKSPACE}) workspace and delete ($${_TEMP_WORKSPACE}) workspace? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		terraform workspace select "$${_INITIAL_WORKSPACE}"; \
