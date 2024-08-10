@@ -22,6 +22,9 @@ GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
 GCP_PREFIX=wlcm
 GCP_POSTFIX=ffcb87
 QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
+# Additional terraform command options
+TF_ARGS ?=
+# Environment options
 __ENVIRONMENT ?=
 __BUCKET_DIR=terraform/state
 __PROD_BUCKET_SUBDIR=prod
@@ -65,6 +68,28 @@ endif
 ifeq (, $(shell which trivy))
 	$(info "No trivy in $(PATH), get it from https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy")
 endif
+
+# Reusable "function" for 'apply', 'destroy' and 'plan' commands
+# Additional arguments to the terraform command are provided via $(TF_ARGS) variable
+define tf
+	$(eval $@_CMD = $(1))
+	$(eval $@_VAR_FILE = $(2))
+	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
+	if [ ! "${$@_ARGS}" = "" ]; then
+		terraform ${$@_CMD} \
+			-lock=true \
+			-input=false \
+			-refresh=true \
+			-var-file='${$@_VAR_FILE}' \
+			${$@_ARGS}
+	else
+		terraform ${$@_CMD} \
+			-lock=true \
+			-input=false \
+			-refresh=true \
+			-var-file='${$@_VAR_FILE}'
+	fi
+endef
 
 help: ## Save our souls! 🛟
 	@echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
@@ -276,11 +301,8 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	fi
 
 plan: _check-ws ## Chart the course before you sail! 🗺️
-	@terraform plan \
-		-lock=true \
-		-input=false \
-		-refresh=true \
-		-var-file="$(__TFVARS_PATH)"
+	@# hide target content
+	$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
 
 plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? 💣
 	@terraform plan \
@@ -290,18 +312,12 @@ plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? �
 		-var-file="$(__TFVARS_PATH)"
 
 apply: validate _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
-	@terraform apply \
-		-lock=true \
-		-input=false \
-		-refresh=true \
-		-var-file="$(__TFVARS_PATH)"
+	@# hide target content
+	$(call tf,apply,$(__TFVARS_PATH),$(TF_ARGS))
 
 destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
-	@terraform destroy \
-		-lock=true \
-		-input=false \
-		-refresh=true \
-		-var-file="$(__TFVARS_PATH)"
+	@# hide target content
+	$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
 
 clean: _check-ws ## Nuke local .terraform directory! 💥
 	echo "$(__BOLD)Cleaning up...$(__RESET)"
