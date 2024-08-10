@@ -306,12 +306,12 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	_CURRENT_WORKSPACE=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
 		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)"; \
 		exit 1; \
-	fi
+	fi; \
 	# check backend configuration
 	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
 		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
 		exit 1; \
-	fi
+	fi; \
 	# apply against origin baseline
 	make apply NON_INTERACTIVE=true; \
 	# switch back to initial branch
@@ -322,12 +322,12 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	_CURRENT_WORKSPACE=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
 		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)"; \
 		exit 1; \
-	fi
+	fi; \
 	# check backend configuration
 	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
 		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
 		exit 1; \
-	fi
+	fi; \
 	# apply to test the changeset
 	make apply NON_INTERACTIVE=true; \
 	echo "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)"; \
@@ -337,7 +337,7 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 		terraform workspace select "$${_INITIAL_WORKSPACE}"; \
 		terraform workspace delete --force "$${_TEMP_WORKSPACE}"; \
 	fi; \
-	if [ ! "$(NON_INTERACTIVE)" = "true" ] && \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		make destroy; \
