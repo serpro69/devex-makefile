@@ -283,6 +283,7 @@ validate: _set-env ## Inspect the rigging and report any issues! 🔍
 	echo ""
 
 test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
+	@# suppress make output
 	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
 	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
 	if [ -n "$${_GIT_STATUS}" ]; then \
