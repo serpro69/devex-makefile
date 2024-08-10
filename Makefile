@@ -283,7 +283,7 @@ validate: _set-env ## Inspect the rigging and report any issues! 🔍
 	echo ""
 
 test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
-	@# suppress make output
+	@# suppress target contents output
 	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
 	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
 	if [ -n "$${_GIT_STATUS}" ]; then \
@@ -312,15 +312,27 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	# switch back to initial branch
 	git switch -; \
 	# re-initialize terraform to pull latest modules, providers, etc from the changeset under test
-	make init __ENVIRONMENT="test" NON_INTERACTIVE=true; \
+	make init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
+	# check if we're running in a temp workspace
+	_CURRENT_WORKSPACE=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
+		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)"; \
+		exit 1; \
+	fi
 	# apply to test the changeset
 	make apply NON_INTERACTIVE=true; \
 	echo "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)"; \
-	# always ask before destroying!
+	# cleanup
+	if [ "$(NON_INTERACTIVE)" = "true" ]; then \
+		make destroy; \
+		terraform workspace select "$${_INITIAL_WORKSPACE}"; \
+		terraform workspace delete --force "$${_TEMP_WORKSPACE}"; \
+	fi; \
+	if [ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		make destroy; \
 	fi; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_WORKSPACE}) workspace and delete ($${_TEMP_WORKSPACE}) workspace? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		terraform workspace select "$${_INITIAL_WORKSPACE}"; \
