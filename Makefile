@@ -307,6 +307,11 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)"; \
 		exit 1; \
 	fi
+	# check backend configuration
+	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
+		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
+		exit 1; \
+	fi
 	# apply against origin baseline
 	make apply NON_INTERACTIVE=true; \
 	# switch back to initial branch
@@ -316,6 +321,11 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	# check if we're running in a temp workspace
 	_CURRENT_WORKSPACE=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
 		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)"; \
+		exit 1; \
+	fi
+	# check backend configuration
+	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
+		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
 		exit 1; \
 	fi
 	# apply to test the changeset
