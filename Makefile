@@ -22,8 +22,10 @@ GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
 GCP_PREFIX=wlcm
 GCP_POSTFIX=ffcb87
 QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
-# Additional terraform command options
+# Additional, space-separated, terraform command options
 TF_ARGS ?=
+# Set to 'true' for non-interactive usage
+NON_INTERACTIVE ?=
 # Environment options
 __ENVIRONMENT ?=
 __BUCKET_DIR=terraform/state
@@ -70,7 +72,7 @@ ifeq (, $(shell which trivy))
 endif
 
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
-# Additional arguments to the terraform command are provided via $(TF_ARGS) variable
+# Additional, space-separated arguments to the terraform command are provided via $(TF_ARGS) variable
 define tf
 	$(eval $@_CMD = $(1))
 	$(eval $@_VAR_FILE = $(2))
@@ -126,11 +128,12 @@ help: ## Save our souls! 🛟
 	echo ""
 	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
 	echo "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮"
-	echo "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are used with other targets!)$(__RESET)"
 	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
 	echo ""
 	echo "$(__MAGENTA)<TF_ARGS>                      $(__MAGENTA)󱁢$(__RESET) Additional terraform command arguments"
 	echo "                               $(__SITM)(e.g., make apply TF_ARGS='-out=foo.out -lock=false')$(__RESET)"
+	echo "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts"
+	echo "                               $(__SITM)(NB! This does not disable prompts coming from terraform)$(__RESET)"
 	echo ""
 	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
 	echo "$(__YELLOW)$(__SITM)Dependencies$(__RESET) 📦"
@@ -166,6 +169,7 @@ _set-env:
 
 _check-ws: _set-env
 	@if [ "$(WORKSPACE)" = "default" ]; then \
+		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)It is usually not desirable to use ($(WORKSPACE)) workspace. Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
 			echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
@@ -178,6 +182,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	echo "$(__BOLD)Checking GCP project...$(__RESET)"
 	_CURRENT_PROJECT=$$(gcloud config get project | tr -d '[:space:]'); \
 	if [ ! -z $(GCP_PROJECT) ] && [ "$(GCP_PROJECT)" != "$${_CURRENT_PROJECT}" ]; then \
+		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Current project $${_CURRENT_PROJECT}. Do you want to switch project? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 			gcloud config set project $(GCP_PROJECT) && \
@@ -187,6 +192,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 			echo "$(__BOLD)$(__CYAN)Using project ($${_CURRENT_PROJECT})$(__RESET)"; \
 		fi; \
 	else
+		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_CURRENT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 			gcloud auth login --update-adc ; \
@@ -196,6 +202,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 
 	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
 	if [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
+		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to update ADC quota-project from ($${_CURRENT_QUOTA_PROJECT}) to ($(QUOTA_PROJECT))? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 			gcloud auth application-default set-quota-project $(QUOTA_PROJECT) ; \
@@ -208,14 +215,19 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	_BUCKET_NAME=$$(gcloud storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
 	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
 	_COLOR=$(__GREEN); \
-	[ ! "$(__ENVIRONMENT)" = "test" ] && \
+	([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
 	read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
 		_COLOR=$(__RED); \
 	fi; \
+	if ([ "$(NON_INTERACTIVE)" = "true" ] && [ "$(__ENVIRONMENT)" = "prod" ]); then \
+		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
+		_COLOR=$(__RED); \
+	fi; \
 	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"; \
 	echo "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)"; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
 		echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
@@ -271,12 +283,12 @@ validate: _set-env ## Inspect the rigging and report any issues! 🔍
 	echo ""
 
 test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
-	@if _GIT_STATUS=$$(git status --porcelain --untracked-files=no) && [ -n "$${_GIT_STATUS}" ]; then \
+	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
+	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
+	if [ -n "$${_GIT_STATUS}" ]; then \
 		echo "$(__BOLD)$(__RED)Working directory has uncommitted changes. Commit or stash your changes before proceeding!$(__RESET)"; \
 		exit 1; \
-	fi; \
-	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
-	if [ "$${_GIT_CURRENT_BRANCH}" = "$(__GIT_DEFAULT_BRANCH)" ]; then \
+	elif [ "$${_GIT_CURRENT_BRANCH}" = "$(__GIT_DEFAULT_BRANCH)" ]; then \
 		echo "$(__BOLD)$(__RED)Unable to proceed in a default git branch. Switch to another branch before proceeding$(__RESET)"; \
 		exit 1; \
 	fi; \
@@ -298,10 +310,12 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	# apply to test the new changeset
 	make apply; \
 	echo "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)"; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		make destroy; \
 	fi; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_WORKSPACE}) workspace and delete ($${_TEMP_WORKSPACE}) workspace? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		terraform workspace select "$${_INITIAL_WORKSPACE}"; \
@@ -330,6 +344,7 @@ destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! �
 clean: _check-ws ## Nuke local .terraform directory! 💥
 	echo "$(__BOLD)Cleaning up...$(__RESET)"
 	_DIR="$(CURDIR)/.terraform" ; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Do you want to remove ($${_DIR})? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		rm -rf "$${_DIR}"; \
