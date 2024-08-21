@@ -173,7 +173,7 @@ _check-ws: _set-env
 		read -p "$(__BOLD)$(__MAGENTA)It is usually not desirable to use ($(WORKSPACE)) workspace. Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
 			echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
-			exit 0; \
+			exit 1; \
 		fi; \
 	fi
 
@@ -231,7 +231,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	read -p "$(__BOLD)$(__MAGENTA)Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
 		echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
-		exit 0; \
+		exit 1; \
 	fi
 
 	# Need to switch to default workspace, since the target WORKSPACE might not exist in the selected bucket
