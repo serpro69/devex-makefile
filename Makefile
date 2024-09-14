@@ -168,8 +168,7 @@ _set-env:
 	echo ""
 
 _check-ws: _set-env
-	@if [ "$(WORKSPACE)" = "default" ]; then \
-		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+	@if [ "$(WORKSPACE)" = "default" ] && [ ! "$(NON_INTERACTIVE)" = "true" ]; then \
 		read -p "$(__BOLD)$(__MAGENTA)It is usually not desirable to use ($(WORKSPACE)) workspace. Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
 			echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
