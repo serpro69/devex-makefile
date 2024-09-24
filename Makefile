@@ -94,59 +94,59 @@ define tf
 endef
 
 help: ## Save our souls! 🛟
-	@echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo "$(__BLUE)This Makefile contains opinionated targets that wrap terraform commands,$(__RESET)"
-	echo "$(__BLUE)providing sane defaults, initialization shortcuts for terraform environment,$(__RESET)"
-	echo "$(__BLUE)and support for remote terraform backends via Google Cloud Storage.$(__RESET)"
-	echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo ""
-	echo "$(__YELLOW)Usage:$(__RESET)"
-	echo "$(__BOLD)> GCP_PROJECT=demo WORKSPACE=demo make init$(__RESET)"
-	echo "$(__BOLD)> make plan$(__RESET)"
-	echo ""
-	echo "$(__DIM)$(__SITM)Tip: Add a $(__BLINK)<space>$(__RESET) $(__DIM)$(__SITM)before the command if it contains sensitive information,$(__RESET)"
-	echo "$(__DIM)$(__SITM)to keep it from bash history!$(__RESET)"
-	echo ""
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo "$(__YELLOW)$(__SITM)Available commands$(__RESET) ⌨️ "
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo ""
-	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-	echo ""
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮"
-	echo "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)"
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo ""
-	echo "$(__MAGENTA)<WORKSPACE>                    $(__MAGENTA)󱁢$(__RESET) Terraform workspace to (potentially create and) switch to"
-	echo "$(__MAGENTA)<GCP_PROJECT>                  $(__BLUE)󱇶$(__RESET) GCP project name $(__SITM)(usually, but not always, the project$(__RESET)"
-	echo "                               $(__SITM)that terraform changes are being applied to)$(__RESET)"
-	echo "$(__MAGENTA)<GCP_PREFIX>                   $(__GREEN)󰾺$(__RESET) Prefix to use in some other GCP-related variables"
-	echo "                               $(__SITM)(e.g., short company name)$(__RESET)"
-	echo "$(__MAGENTA)<QUOTA_PROJECT>                $(__CYAN)$(__RESET) GCP quota project name"
-	echo "                               $(__SITM)(NB! we assume quota project contains the .tfstate bucket)$(__RESET)"
-	echo ""
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮"
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo ""
-	echo "$(__MAGENTA)<TF_ARGS>                      $(__MAGENTA)󱁢$(__RESET) Additional terraform command arguments"
-	echo "                               $(__SITM)(e.g., make apply TF_ARGS='-out=foo.out -lock=false')$(__RESET)"
-	echo "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts"
-	echo "                               $(__SITM)(NB! This does not disable prompts coming from terraform)$(__RESET)"
-	echo ""
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo "$(__YELLOW)$(__SITM)Dependencies$(__RESET) 📦"
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"
-	echo ""
-	echo "$(__BLUE)- gcloud                       $(__GREEN)https://cloud.google.com/sdk/docs/install$(__RESET)"
-	echo "$(__BLUE)- jq                           $(__GREEN)https://github.com/jqlang/jq?tab=readme-ov-file#installation$(__RESET)"
-	echo "$(__BLUE)- terraform                    $(__GREEN)https://www.terraform.io/downloads.html$(__RESET)"
-	echo "$(__BLUE)- tflint                       $(__GREEN)https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation$(__RESET)"
-	echo "$(__BLUE)- trivy                        $(__GREEN)https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy$(__RESET)"
-	echo ""
-	echo "$(__SITM)$(__DIM)Optional:$(__RESET)"
-	echo "$(__BLUE)$(__DIM)- nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)"
+	@echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__BLUE)This Makefile contains opinionated targets that wrap terraform commands,$(__RESET)"; \
+	echo "$(__BLUE)providing sane defaults, initialization shortcuts for terraform environment,$(__RESET)"; \
+	echo "$(__BLUE)and support for remote terraform backends via Google Cloud Storage.$(__RESET)"; \
+	echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	echo "$(__YELLOW)Usage:$(__RESET)"; \
+	echo "$(__BOLD)> GCP_PROJECT=demo WORKSPACE=demo make init$(__RESET)"; \
+	echo "$(__BOLD)> make plan$(__RESET)"; \
+	echo ""; \
+	echo "$(__DIM)$(__SITM)Tip: Add a $(__BLINK)<space>$(__RESET) $(__DIM)$(__SITM)before the command if it contains sensitive information,$(__RESET)"; \
+	echo "$(__DIM)$(__SITM)to keep it from bash history!$(__RESET)"; \
+	echo ""; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__YELLOW)$(__SITM)Available commands$(__RESET) ⌨️ "; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'; \
+	echo ""; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮"; \
+	echo "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)"; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	echo "$(__MAGENTA)<WORKSPACE>                    $(__MAGENTA)󱁢$(__RESET) Terraform workspace to (potentially create and) switch to"; \
+	echo "$(__MAGENTA)<GCP_PROJECT>                  $(__BLUE)󱇶$(__RESET) GCP project name $(__SITM)(usually, but not always, the project$(__RESET)"; \
+	echo "                               $(__SITM)that terraform changes are being applied to)$(__RESET)"; \
+	echo "$(__MAGENTA)<GCP_PREFIX>                   $(__GREEN)󰾺$(__RESET) Prefix to use in some other GCP-related variables"; \
+	echo "                               $(__SITM)(e.g., short company name)$(__RESET)"; \
+	echo "$(__MAGENTA)<QUOTA_PROJECT>                $(__CYAN)$(__RESET) GCP quota project name"; \
+	echo "                               $(__SITM)(NB! we assume quota project contains the .tfstate bucket)$(__RESET)"; \
+	echo ""; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮"; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	echo "$(__MAGENTA)<TF_ARGS>                      $(__MAGENTA)󱁢$(__RESET) Additional terraform command arguments"; \
+	echo "                               $(__SITM)(e.g., make apply TF_ARGS='-out=foo.out -lock=false')$(__RESET)"; \
+	echo "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts"; \
+	echo "                               $(__SITM)(NB! This does not disable prompts coming from terraform)$(__RESET)"; \
+	echo ""; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__YELLOW)$(__SITM)Dependencies$(__RESET) 📦"; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	echo "$(__BLUE)- gcloud                       $(__GREEN)https://cloud.google.com/sdk/docs/install$(__RESET)"; \
+	echo "$(__BLUE)- jq                           $(__GREEN)https://github.com/jqlang/jq?tab=readme-ov-file#installation$(__RESET)"; \
+	echo "$(__BLUE)- terraform                    $(__GREEN)https://www.terraform.io/downloads.html$(__RESET)"; \
+	echo "$(__BLUE)- tflint                       $(__GREEN)https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation$(__RESET)"; \
+	echo "$(__BLUE)- trivy                        $(__GREEN)https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy$(__RESET)"; \
+	echo ""; \
+	echo "$(__SITM)$(__DIM)Optional:$(__RESET)"; \
+	echo "$(__BLUE)$(__DIM)- nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)"; \
 	echo ""
 
 _set-env:
