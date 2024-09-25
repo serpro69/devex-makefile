@@ -55,20 +55,20 @@ __CYAN=$(shell tput setaf 6)
 __WHITE=$(shell tput setaf 7)
 
 # Check for necessary tools
-ifeq (, $(shell which gcloud))
-	$(error "No gcloud in $(PATH), go to https://cloud.google.com/sdk/docs/install, pick your OS, and follow the instructions")
-endif
-ifeq (, $(shell which jq))
-	$(error "No jq in $(PATH), please install jq: https://github.com/jqlang/jq?tab=readme-ov-file#installation")
-endif
-ifeq (, $(shell which terraform))
-	$(error "No terraform in $(PATH), get it from https://www.terraform.io/downloads.html")
-endif
-ifeq (, $(shell which tflint))
-	$(info "No tflint in $(PATH), get it from https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation")
-endif
-ifeq (, $(shell which trivy))
-	$(info "No trivy in $(PATH), get it from https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy")
+ifneq ($(filter help,$(MAKECMDGOALS)),)
+  # Skip checks for help target
+else
+  ifeq (, $(shell which gcloud))
+    $(error "No gcloud in $(PATH), go to https://cloud.google.com/sdk/docs/install, pick your OS, and follow the instructions")
+  else ifeq (, $(shell which jq))
+    $(error "No jq in $(PATH), please install jq: https://github.com/jqlang/jq?tab=readme-ov-file#installation")
+  else ifeq (, $(shell which terraform))
+    $(error "No terraform in $(PATH), get it from https://www.terraform.io/downloads.html")
+  else ifeq (, $(shell which tflint))
+    $(error "No tflint in $(PATH), get it from https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation")
+  else ifeq (, $(shell which trivy))
+    $(error "No trivy in $(PATH), get it from https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy")
+  endif
 endif
 
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
