@@ -26,6 +26,8 @@ QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
 TF_ARGS ?=
 # Set to 'true' for non-interactive usage
 NON_INTERACTIVE ?=
+# Set to 'true' to disable some options like colors in environments where $TERM is not set
+NO_TERM ?=
 # Environment options
 __ENVIRONMENT ?=
 __BUCKET_DIR=terraform/state
@@ -53,6 +55,35 @@ __BLUE=$(shell tput setaf 4)
 __MAGENTA=$(shell tput setaf 5)
 __CYAN=$(shell tput setaf 6)
 __WHITE=$(shell tput setaf 7)
+# set to 'true' to disable colors
+__NO_COLORS=false
+
+ifeq ($(NO_TERM),true)
+  __NO_COLORS=true
+endif
+
+ifeq ($(origin TERM), undefined)
+  __NO_COLORS=true
+endif
+
+ifeq ($(__NO_COLORS),true)
+  __RESET=
+  __BLINK=
+  __BOLD=
+  __DIM=
+  __SITM=
+  __REV=
+  __SMSO=
+  __SMUL=
+  __BLACK=
+  __RED=
+  __GREEN=
+  __YELLOW=
+  __BLUE=
+  __MAGENTA=
+  __CYAN=
+  __WHITE=
+endif
 
 # Check for necessary tools
 ifneq ($(filter help,$(MAKECMDGOALS)),)
