@@ -270,15 +270,17 @@ format: ## Swab the deck and tidy up! 🧹
 # https://github.com/terraform-linters/tflint
 # https://aquasecurity.github.io/trivy
 validate: _set-env ## Inspect the rigging and report any issues! 🔍
-	@echo "$(__BOLD)Validate terraform configuration...$(__RESET)"
-	terraform validate
-	echo "$(__BOLD)Lint terraform files...$(__RESET)"
-	tflint --var-file "$(__TFVARS_PATH)"
+	@echo "$(__BOLD)Check terraform formatting...$(__RESET)"; \
+	terraform fmt -check=true -recursive; \
+	echo "$(__BOLD)Validate terraform configuration...$(__RESET)"; \
+	terraform validate; \
+	echo "$(__BOLD)Lint terraform files...$(__RESET)"; \
+	tflint --var-file "$(__TFVARS_PATH)"; \
 	# https://aquasecurity.github.io/trivy/v0.53/docs/coverage/iac/terraform/
 	# TIP: suppress issues via inline comments:
 	# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments
-	echo "$(__BOLD)\nScan for vulnerabilities...$(__RESET)"
-	trivy conf --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .
+	echo "$(__BOLD)\nScan for vulnerabilities...$(__RESET)"; \
+	trivy conf --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .; \
 	echo ""
 
 test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
