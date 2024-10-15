@@ -208,8 +208,8 @@ _check-ws: _set-env
 	fi
 
 init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
-	@echo "$(__BOLD)Initializing terraform...$(__RESET)"
-	echo "$(__BOLD)Checking GCP project...$(__RESET)"
+	@echo "$(__BOLD)Initializing terraform...$(__RESET)"; \
+	echo "$(__BOLD)Checking GCP project...$(__RESET)"; \
 	_CURRENT_PROJECT=$$(gcloud config get project | tr -d '[:space:]'); \
 	if [ ! -z $(GCP_PROJECT) ] && [ "$(GCP_PROJECT)" != "$${_CURRENT_PROJECT}" ]; then \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
@@ -228,7 +228,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 			gcloud auth login --update-adc ; \
 		fi; \
 		echo "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)"; \
-	fi
+	fi; \
 
 	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
 	if [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
@@ -238,7 +238,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 			gcloud auth application-default set-quota-project $(QUOTA_PROJECT) ; \
 			echo "$(__BOLD)$(__CYAN)Quota-project is set to ($(QUOTA_PROJECT))$(__RESET)"; \
 		fi; \
-	fi
+	fi; \
 
 	# Configure GCS backend
 	echo "$(__BOLD)Configuring the terraform backend...$(__RESET)"; \
@@ -262,15 +262,15 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
 		echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
 		exit 1; \
-	fi
+	fi; \
 
 	# Need to switch to default workspace, since the target WORKSPACE might not exist in the selected bucket
 	# (when changing between prod and non-prod state bucket sub-dirs)
 	_CURRENT_WORKSPACE=$$(terraform workspace show | tr -d '[:space:]') && \
 	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
-		echo "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)"
+		echo "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)"; \
 		terraform workspace select default; \
-	fi
+	fi; \
 
 	terraform init \
 		-reconfigure \
@@ -280,17 +280,25 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		-upgrade \
 		-backend=true \
 		-backend-config="bucket=$${_BUCKET_NAME}" \
-		-backend-config="prefix=$${_BUCKET_PATH}"
+		-backend-config="prefix=$${_BUCKET_PATH}"; \
 
-	echo "$(__BOLD)Checking terraform workspace...$(__RESET)"
+	echo "$(__BOLD)Checking terraform workspace...$(__RESET)"; \
 	_CURRENT_WORKSPACE=$$(terraform workspace show | tr -d '[:space:]'); \
 	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
-		echo "$(__BOLD)Switching to workspace ($(WORKSPACE))$(__RESET)"
+		echo "$(__BOLD)Switching to workspace ($(WORKSPACE))$(__RESET)"; \
 		terraform workspace select -or-create $(WORKSPACE); \
 	else
 		echo "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_WORKSPACE})$(__RESET)"; \
-	fi
-	echo "$(__BOLD)$(__GREEN)Done initializing terraform$(__RESET)"
+	fi; \
+
+	# Initialize tflint
+	if [ -f ".tflint.hcl" ]; then \
+		echo "$(__BOLD)Initializing tflint...$(__RESET)"; \
+		tflint --init; \
+	fi; \
+
+	# Done
+	echo "$(__BOLD)$(__GREEN)Done initializing terraform$(__RESET)"; \
 	echo "$(__BOLD)$(__CYAN)You can now run other commands, for example:\nrun $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what terraform thinks it will do when applying changes,\nor $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)"
 
 format: ## Swab the deck and tidy up! 🧹
