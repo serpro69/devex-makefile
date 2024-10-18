@@ -102,12 +102,23 @@ else
   endif
 endif
 
+define tfvars
+	search_string="$(WORKSPACE)"; \
+	sed -i "/$$search_string/{
+			/^# /{ s/^# //; b; }
+			/^#/{ s/^#//; b; }
+			/^[^#]/{ s/^/# /; }
+	}" terraform.tfvars
+endef
+
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
 # Additional, space-separated arguments to the terraform command are provided via $(TF_ARGS) variable
 define tf
 	$(eval $@_CMD = $(1))
 	$(eval $@_VAR_FILE = $(2))
 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
+	$(call tfvars,)
+
 	if [ ! "${$@_ARGS}" = "" ]; then
 		terraform ${$@_CMD} \
 			-lock=true \
@@ -122,6 +133,8 @@ define tf
 			-refresh=true \
 			-var-file='${$@_VAR_FILE}'
 	fi
+
+	$(call tfvars,)
 endef
 
 help: ## Save our souls! 🛟
