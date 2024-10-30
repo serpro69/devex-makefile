@@ -46,7 +46,7 @@ PL_ARGS ?=
 GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
 GCP_PREFIX=wlcm
 GCP_POSTFIX=ffcb87
-QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
+QUOTA_PROJECT=$(GCP_PREFIX)-$(GCS_BUCKET)-$(GCP_POSTFIX)
 
 ### Terminal
 # Set to 'true' for non-interactive usage
@@ -58,6 +58,7 @@ NO_TERM ?=
 __ENVIRONMENT ?=
 # TODO: add support for support local/remote backend
 # __BACKEND ?= local
+__GCS_BUCKET=plstate
 __BUCKET_DIR=pulumi/state
 __PROD_BUCKET_SUBDIR=prod
 __TEST_BUCKET_SUBDIR=test
@@ -263,7 +264,9 @@ _set-env:
 	echo ""
 
 init: ## Hoist the sails and prepare for the voyage! 🌬️💨
-	@echo "$(__BOLD)Initializing terraform...$(__RESET)"; \
+	@echo "$(__BOLD)Initializing pulumi...$(__RESET)"; \
+
+	# Auth and configure GCP project
 	echo "$(__BOLD)Checking GCP project...$(__RESET)"; \
 	_CURRENT_PROJECT=$$(gcloud config get project | tr -d '[:space:]'); \
 	if [ ! -z $(GCP_PROJECT) ] && [ "$(GCP_PROJECT)" != "$${_CURRENT_PROJECT}" ]; then \
@@ -284,7 +287,7 @@ init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 		fi; \
 		echo "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)"; \
 	fi; \
-
+	# Configure ADC quota project
 	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
 	if [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
@@ -295,9 +298,9 @@ init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 		fi; \
 	fi; \
 
-	# Configure GCS backend
-	echo "$(__BOLD)Configuring the terraform backend...$(__RESET)"; \
-	_BUCKET_NAME=$$(gcloud storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
+	# Configure pulumi backend
+	echo "$(__BOLD)Configuring the pulumi backend...$(__RESET)"; \
+	_BUCKET_NAME=$$(gcloud storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep '$(__GCS_BUCKET)' | head -n1 | tr -d '[:space:]'); \
 	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
 	_COLOR=$(__GREEN); \
 	([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
