@@ -17,18 +17,24 @@ __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 # - https://www.gnu.org/software/make/manual/html_node/Flavors.html
 # - https://www.gnu.org/software/make/manual/html_node/Setting.html
 # - https://www.gnu.org/software/make/manual/html_node/Shell-Function.html
+### Terraform
 WORKSPACE ?= $(shell terraform workspace show | tr -d '[:space:]')
+# Additional, space-separated, terraform command options
+TF_ARGS ?=
+# Set a resource path to apply first, before fully converging the entire configuration
+# This is a shortcut to avoid calling make apply twice, i.e. 'make apply TF_ARGS='-target="some_resource.name"' && make apply'
+TF_CONVERGE_FROM ?=
+### Google Cloud Platform
 GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
 GCP_PREFIX=wlcm
 GCP_POSTFIX=ffcb87
 QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
-# Additional, space-separated, terraform command options
-TF_ARGS ?=
+### Terminal
 # Set to 'true' for non-interactive usage
 NON_INTERACTIVE ?=
 # Set to 'true' to disable some options like colors in environments where $TERM is not set
 NO_TERM ?=
-# Environment options
+### Environment options
 __ENVIRONMENT ?=
 __BUCKET_DIR=terraform/state
 __PROD_BUCKET_SUBDIR=prod
@@ -117,7 +123,27 @@ define tf
 	$(eval $@_CMD = $(1))
 	$(eval $@_VAR_FILE = $(2))
 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
+
 	$(call tfvars,)
+
+	if [ ! "${TF_CONVERGE_FROM}" = "" ]; then
+		if [ ! "${$@_ARGS}" = "" ]; then
+			terraform ${$@_CMD} \
+				-lock=true \
+				-input=false \
+				-refresh=true \
+				-var-file='${$@_VAR_FILE}' \
+				-target='${TF_CONVERGE_FROM}' \
+				${$@_ARGS}
+		else
+			terraform ${$@_CMD} \
+				-lock=true \
+				-input=false \
+				-refresh=true \
+				-var-file='${$@_VAR_FILE}' \
+				-target='${TF_CONVERGE_FROM}'
+		fi
+	fi
 
 	if [ ! "${$@_ARGS}" = "" ]; then
 		terraform ${$@_CMD} \
