@@ -254,16 +254,7 @@ _set-env:
 	echo "$(__BOLD)$(__GREEN)Done setting environment variables$(__RESET)"
 	echo ""
 
-_check-ws: _set-env
-	@if [ "$(STACK)" = "default" ] && [ ! "$(NON_INTERACTIVE)" = "true" ]; then \
-		read -p "$(__BOLD)$(__MAGENTA)It is usually not desirable to use ($(STACK)) workspace. Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
-		if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
-			echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
-			exit 1; \
-		fi; \
-	fi
-
-init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
+init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 	@echo "$(__BOLD)Initializing terraform...$(__RESET)"; \
 	echo "$(__BOLD)Checking GCP project...$(__RESET)"; \
 	_CURRENT_PROJECT=$$(gcloud config get project | tr -d '[:space:]'); \
@@ -381,8 +372,8 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 # 	echo ""
 
 # TODO: uncomment when validate is implemented 
-# test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
-test: _check-ws ## Run some drills before we plunder! ⚔️  🏹
+# test: validate ## Run some drills before we plunder! ⚔️  🏹
+test: ## Run some drills before we plunder! ⚔️  🏹
 	@# suppress target contents output
 	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
 	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
@@ -449,11 +440,11 @@ test: _check-ws ## Run some drills before we plunder! ⚔️  🏹
 		terraform workspace delete --force "$${_TEMP_STACK}"; \
 	fi
 
-plan: _check-ws ## Chart the course before you sail! 🗺️
+plan: ## Chart the course before you sail! 🗺️
 	@# hide target content
 	$(call tf,plan,$(__PLCONF_PATH),$(PL_ARGS))
 
-plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? 💣
+plan-destroy: ## What would happen if we blow it all to smithereens? 💣
 	@terraform plan \
 		-input=false \
 		-refresh=true \
@@ -461,19 +452,19 @@ plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? �
 		-var-file="$(__PLCONF_PATH)"
 
 # TODO: uncomment when validate is implemented 
-# apply: validate _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
-apply: _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
+# apply: validate ## Set course and full speed ahead! ⛵ This will cost you! 💰
+apply: ## Set course and full speed ahead! ⛵ This will cost you! 💰
 	@# hide target content
 	$(call tf,apply,$(__PLCONF_PATH),$(PL_ARGS))
 
 # TODO: uncomment when validate is implemented 
-# destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
-destroy: _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
+# destroy: validate ## Release the Kraken! 🐙 This can't be undone! ☠️
+destroy: ## Release the Kraken! 🐙 This can't be undone! ☠️
 	@# hide target content
 	$(call tf,destroy,$(__PLCONF_PATH),$(PL_ARGS))
 
 # TODO: not implemented
-# clean: _check-ws ## Nuke local .terraform directory! 💥
+# clean: ## Nuke local .terraform directory! 💥
 # 	echo "$(__BOLD)Cleaning up...$(__RESET)"
 # 	_DIR="$(CURDIR)/.terraform" ; \
 # 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
