@@ -448,11 +448,11 @@ test: ## Run some drills before we plunder! ⚔️  🏹
 		terraform workspace delete --force "$${_TEMP_STACK}"; \
 	fi
 
-plan: ## Chart the course before you sail! 🗺️
+preview: ## Chart the course before you sail! 🗺️
 	@# hide target content
 	$(call tf,plan,$(__PLCONF_PATH),$(PL_ARGS))
 
-plan-destroy: ## What would happen if we blow it all to smithereens? 💣
+preview-destroy: ## What would happen if we blow it all to smithereens? 💣
 	@terraform plan \
 		-input=false \
 		-refresh=true \
@@ -461,7 +461,7 @@ plan-destroy: ## What would happen if we blow it all to smithereens? 💣
 
 # TODO: uncomment when validate is implemented 
 # apply: validate ## Set course and full speed ahead! ⛵ This will cost you! 💰
-apply: ## Set course and full speed ahead! ⛵ This will cost you! 💰
+up: ## Set course and full speed ahead! ⛵ This will cost you! 💰
 	@# hide target content
 	$(call tf,apply,$(__PLCONF_PATH),$(PL_ARGS))
 
