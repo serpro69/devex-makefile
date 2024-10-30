@@ -1,0 +1,484 @@
+# Copyright 2024- Serhii Prodanov
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+############################# Useful docs #############################
+# Pulumi vs. Terraform - Terms & Command Equivalents
+# - https://www.pulumi.com/docs/iac/concepts/vs/terraform/terminology/
+#
+#
+#######################################################################
+
+.ONESHELL:
+.SHELL := /usr/bin/env bash
+.SHELLFLAGS := -ec
+.PHONY: up clean destroy format help init preview preview-destroy test validate
+# https://stackoverflow.com/a/63771055
+__MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+# Use below for reference on how to use variables in a Makefile:
+# - https://www.gnu.org/software/make/manual/html_node/Using-Variables.html
+# - https://www.gnu.org/software/make/manual/html_node/Flavors.html
+# - https://www.gnu.org/software/make/manual/html_node/Setting.html
+# - https://www.gnu.org/software/make/manual/html_node/Shell-Function.html
+
+### Pulumi
+STACK ?= $(shell pulumi stack --show-name | tr -d '[:space:]')
+# Additional, space-separated, pulumi command options
+PL_ARGS ?=
+# TODO: not implemented
+# Set a resource path to apply first, before fully converging the entire configuration
+# This is a shortcut to avoid calling make apply twice, i.e. 'make apply PL_ARGS='-target="some_resource.name"' && make apply'
+# PL_CONVERGE_FROM ?=
+
+### Google Cloud Platform
+GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
+GCP_PREFIX=wlcm
+GCP_POSTFIX=ffcb87
+QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
+
+### Terminal
+# Set to 'true' for non-interactive usage
+NON_INTERACTIVE ?=
+# Set to 'true' to disable some options like colors in environments where $TERM is not set
+NO_TERM ?=
+
+### Environment and hidden options
+__ENVIRONMENT ?=
+# TODO: add support for support local/remote backend
+# __BACKEND ?= local
+__BUCKET_DIR=pulumi/state
+__PROD_BUCKET_SUBDIR=prod
+__TEST_BUCKET_SUBDIR=test
+__PLCONF_PATH=./Pulumi.$(STACK).yml
+__GIT_DEFAULT_BRANCH=main
+# Change output
+# https://www.mankier.com/5/terminfo#Description-Highlighting,_Underlining,_and_Visible_Bells
+# https://www.linuxquestions.org/questions/linux-newbie-8/tput-for-bold-dim-italic-underline-blinking-reverse-invisible-4175704737/#post6308097
+__RESET=$(shell tput sgr0)
+__BLINK=$(shell tput blink)
+__BOLD=$(shell tput bold)
+__DIM=$(shell tput dim)
+__SITM=$(shell tput sitm)
+__REV=$(shell tput rev)
+__SMSO=$(shell tput smso)
+__SMUL=$(shell tput smul)
+# https://www.mankier.com/5/terminfo#Description-Color_Handling
+__BLACK=$(shell tput setaf 0)
+__RED=$(shell tput setaf 1)
+__GREEN=$(shell tput setaf 2)
+__YELLOW=$(shell tput setaf 3)
+__BLUE=$(shell tput setaf 4)
+__MAGENTA=$(shell tput setaf 5)
+__CYAN=$(shell tput setaf 6)
+__WHITE=$(shell tput setaf 7)
+# set to 'true' to disable colors
+__NO_COLORS=false
+
+ifeq ($(NO_TERM),true)
+  __NO_COLORS=true
+endif
+
+ifeq ($(origin TERM), undefined)
+  __NO_COLORS=true
+endif
+
+ifeq ($(__NO_COLORS),true)
+  __RESET=
+  __BLINK=
+  __BOLD=
+  __DIM=
+  __SITM=
+  __REV=
+  __SMSO=
+  __SMUL=
+  __BLACK=
+  __RED=
+  __GREEN=
+  __YELLOW=
+  __BLUE=
+  __MAGENTA=
+  __CYAN=
+  __WHITE=
+endif
+
+# Check for necessary tools
+ifneq ($(filter help,$(MAKECMDGOALS)),)
+  # Skip checks for help target
+else
+  ifeq (, $(shell which gcloud))
+    $(error "No gcloud in $(PATH), go to https://cloud.google.com/sdk/docs/install, pick your OS, and follow the instructions")
+  else ifeq (, $(shell which jq))
+    $(error "No jq in $(PATH), please install jq: https://github.com/jqlang/jq?tab=readme-ov-file#installation")
+  else ifeq (, $(shell which pulumi))
+    $(error "No pulumi in $(PATH), get it from https://www.pulumi.com/docs/iac/download-install/")
+	# TODO: uncomment when validate is implemented
+  # else ifeq (, $(shell which tflint))
+  #   $(error "No tflint in $(PATH), get it from https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation")
+  # else ifeq (, $(shell which trivy))
+  #   $(error "No trivy in $(PATH), get it from https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy")
+  endif
+endif
+
+# TODO: not implemented
+# define tfvars
+# 	search_string="$(STACK)"; \
+# 	sed -i "/$$search_string/{
+# 			/^# /{ s/^# //; b; }
+# 			/^#/{ s/^#//; b; }
+# 			/^[^#]/{ s/^/# /; }
+# 	}" terraform.tfvars
+# endef
+
+# TODO: not implemented
+# Reusable "function" for 'up', 'destroy' and 'plan' commands
+# Additional, space-separated arguments to the terraform command are provided via $(PL_ARGS) variable
+# define tf
+# 	$(eval $@_CMD = $(1))
+# 	$(eval $@_VAR_FILE = $(2))
+# 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
+#
+# 	$(call tfvars,)
+#
+# 	if [ ! "${PL_CONVERGE_FROM}" = "" ]; then
+# 		if [ ! "${$@_ARGS}" = "" ]; then
+# 			terraform ${$@_CMD} \
+# 				-lock=true \
+# 				-input=false \
+# 				-refresh=true \
+# 				-var-file='${$@_VAR_FILE}' \
+# 				-target='${PL_CONVERGE_FROM}' \
+# 				${$@_ARGS}
+# 		else
+# 			terraform ${$@_CMD} \
+# 				-lock=true \
+# 				-input=false \
+# 				-refresh=true \
+# 				-var-file='${$@_VAR_FILE}' \
+# 				-target='${PL_CONVERGE_FROM}'
+# 		fi
+# 	fi
+#
+# 	if [ ! "${$@_ARGS}" = "" ]; then
+# 		terraform ${$@_CMD} \
+# 			-lock=true \
+# 			-input=false \
+# 			-refresh=true \
+# 			-var-file='${$@_VAR_FILE}' \
+# 			${$@_ARGS}
+# 	else
+# 		terraform ${$@_CMD} \
+# 			-lock=true \
+# 			-input=false \
+# 			-refresh=true \
+# 			-var-file='${$@_VAR_FILE}'
+# 	fi
+#
+# 	$(call tfvars,)
+# endef
+
+help: ## Save our souls! 🛟
+	@echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__BLUE)This Makefile contains opinionated targets that wrap pulumi commands,$(__RESET)"; \
+	echo "$(__BLUE)providing sane defaults, initialization shortcuts for pulumi environment,$(__RESET)"; \
+	echo "$(__BLUE)and support for remote pulumi backends via Google Cloud Storage.$(__RESET)"; \
+	echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	echo "$(__YELLOW)Usage:$(__RESET)"; \
+	echo "$(__BOLD)> GCP_PROJECT=demo STACK=demo make init$(__RESET)"; \
+	echo "$(__BOLD)> make preview$(__RESET)"; \
+	echo ""; \
+	echo "$(__DIM)$(__SITM)Tip: Add a $(__BLINK)<space>$(__RESET) $(__DIM)$(__SITM)before the command if it contains sensitive information,$(__RESET)"; \
+	echo "$(__DIM)$(__SITM)to keep it from bash history!$(__RESET)"; \
+	echo ""; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__YELLOW)$(__SITM)Available commands$(__RESET) ⌨️ "; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'; \
+	echo ""; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮"; \
+	echo "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)"; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	echo "$(__MAGENTA)<STACK>                        $(__MAGENTA)󰮄$(__RESET) Pulumi stack to (potentially create and) switch to"; \
+	echo "$(__MAGENTA)<GCP_PROJECT>                  $(__BLUE)󱇶$(__RESET) GCP project name $(__SITM)(usually, but not always, the project$(__RESET)"; \
+	echo "                               $(__SITM)that pulumi changes are being applied to)$(__RESET)"; \
+	echo "$(__MAGENTA)<GCP_PREFIX>                   $(__GREEN)󰾺$(__RESET) Prefix to use in some other GCP-related variables"; \
+	echo "                               $(__SITM)(e.g., short company name)$(__RESET)"; \
+	echo "$(__MAGENTA)<QUOTA_PROJECT>                $(__CYAN)$(__RESET) GCP quota project name"; \
+	echo "                               $(__SITM)(NB! we assume quota project contains the state bucket)$(__RESET)"; \
+	echo ""; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮"; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	echo "$(__MAGENTA)<PL_ARGS>                      $(__MAGENTA)󰮄$(__RESET) Additional pulumi command arguments"; \
+	echo "                               $(__SITM)(e.g., make up PL_ARGS='--yes --expect-no-changes')$(__RESET)"; \
+	echo "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts"; \
+	echo "                               $(__SITM)(NB! This does not disable prompts coming from pulumi)$(__RESET)"; \
+	echo ""; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo "$(__YELLOW)$(__SITM)Dependencies$(__RESET) 📦"; \
+	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
+	echo ""; \
+	echo "$(__BLUE)- gcloud                       $(__GREEN)https://cloud.google.com/sdk/docs/install$(__RESET)"; \
+	echo "$(__BLUE)- jq                           $(__GREEN)https://github.com/jqlang/jq?tab=readme-ov-file#installation$(__RESET)"; \
+	echo "$(__BLUE)- pulumi                       $(__GREEN)https://www.pulumi.com/docs/iac/download-install/$(__RESET)"; \
+	# echo "$(__BLUE)- tflint                       $(__GREEN)https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation$(__RESET)"; \
+	# echo "$(__BLUE)- trivy                        $(__GREEN)https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy$(__RESET)"; \
+	echo ""; \
+	echo "$(__SITM)$(__DIM)Optional:$(__RESET)"; \
+	echo "$(__BLUE)$(__DIM)- nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)"; \
+	echo ""
+
+_set-env:
+	@echo "$(__BOLD)Setting environment variables...$(__RESET)"
+	if [ -z $(STACK) ]; then \
+		echo "$(__BOLD)$(__RED)STACK was not set$(__RESET)"; \
+		_ERROR=1; \
+	fi; \
+	if [ ! -f "$(__PLCONF_PATH)" ]; then \
+		echo "$(__BOLD)$(__RED)Could not find variables file: $(__PLCONF_PATH)$(__RESET)"; \
+		_ERROR=1; \
+	fi; \
+	if [ ! -z "$${_ERROR}" ] && [ "$${_ERROR}" -eq 1 ]; then \
+		# https://stackoverflow.com/a/3267187
+		echo "$(__BOLD)$(__RED)Failed to set environment variables\nRun $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__RED)for usage details$(__RESET)"
+		exit 1; \
+	fi
+	echo "$(__BOLD)$(__GREEN)Done setting environment variables$(__RESET)"
+	echo ""
+
+_check-ws: _set-env
+	@if [ "$(STACK)" = "default" ] && [ ! "$(NON_INTERACTIVE)" = "true" ]; then \
+		read -p "$(__BOLD)$(__MAGENTA)It is usually not desirable to use ($(STACK)) workspace. Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
+		if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
+			echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
+			exit 1; \
+		fi; \
+	fi
+
+init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
+	@echo "$(__BOLD)Initializing terraform...$(__RESET)"; \
+	echo "$(__BOLD)Checking GCP project...$(__RESET)"; \
+	_CURRENT_PROJECT=$$(gcloud config get project | tr -d '[:space:]'); \
+	if [ ! -z $(GCP_PROJECT) ] && [ "$(GCP_PROJECT)" != "$${_CURRENT_PROJECT}" ]; then \
+		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+		read -p "$(__BOLD)$(__MAGENTA)Current project $${_CURRENT_PROJECT}. Do you want to switch project? [y/Y]: $(__RESET)" ANSWER && \
+		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+			gcloud config set project $(GCP_PROJECT) && \
+			gcloud auth login --update-adc ; \
+			echo "$(__BOLD)$(__GREEN)Project changed to $(GCP_PROJECT)$(__RESET)"; \
+		else
+			echo "$(__BOLD)$(__CYAN)Using project ($${_CURRENT_PROJECT})$(__RESET)"; \
+		fi; \
+	else
+		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_CURRENT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
+		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+			gcloud auth login --update-adc ; \
+		fi; \
+		echo "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)"; \
+	fi; \
+
+	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
+	if [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
+		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+		read -p "$(__BOLD)$(__MAGENTA)Do you want to update ADC quota-project from ($${_CURRENT_QUOTA_PROJECT}) to ($(QUOTA_PROJECT))? [y/Y]: $(__RESET)" ANSWER && \
+		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+			gcloud auth application-default set-quota-project $(QUOTA_PROJECT) ; \
+			echo "$(__BOLD)$(__CYAN)Quota-project is set to ($(QUOTA_PROJECT))$(__RESET)"; \
+		fi; \
+	fi; \
+
+	# Configure GCS backend
+	echo "$(__BOLD)Configuring the terraform backend...$(__RESET)"; \
+	_BUCKET_NAME=$$(gcloud storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
+	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
+	_COLOR=$(__GREEN); \
+	([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
+	read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
+	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
+		_COLOR=$(__RED); \
+	fi; \
+	if ([ "$(NON_INTERACTIVE)" = "true" ] && [ "$(__ENVIRONMENT)" = "prod" ]); then \
+		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
+		_COLOR=$(__RED); \
+	fi; \
+	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"; \
+	echo "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)"; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+	read -p "$(__BOLD)$(__MAGENTA)Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
+	if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
+		echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
+		exit 1; \
+	fi; \
+
+	# Need to switch to default workspace, since the target STACK might not exist in the selected bucket
+	# (when changing between prod and non-prod state bucket sub-dirs)
+	_CURRENT_STACK=$$(terraform workspace show | tr -d '[:space:]') && \
+	if [ ! -z $(STACK) ] && [ "$(STACK)" != "$${_CURRENT_STACK}" ]; then \
+		echo "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)"; \
+		terraform workspace select default; \
+	fi; \
+
+	terraform init \
+		-reconfigure \
+		-input=false \
+		-force-copy \
+		-lock=true \
+		-upgrade \
+		-backend=true \
+		-backend-config="bucket=$${_BUCKET_NAME}" \
+		-backend-config="prefix=$${_BUCKET_PATH}"; \
+
+	echo "$(__BOLD)Checking terraform workspace...$(__RESET)"; \
+	_CURRENT_STACK=$$(terraform workspace show | tr -d '[:space:]'); \
+	if [ ! -z $(STACK) ] && [ "$(STACK)" != "$${_CURRENT_STACK}" ]; then \
+		echo "$(__BOLD)Switching to workspace ($(STACK))$(__RESET)"; \
+		terraform workspace select -or-create $(STACK); \
+	else
+		echo "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_STACK})$(__RESET)"; \
+	fi; \
+
+	# Initialize tflint
+	if [ -f ".tflint.hcl" ]; then \
+		echo "$(__BOLD)Initializing tflint...$(__RESET)"; \
+		tflint --init; \
+	fi; \
+
+	# Done
+	echo "$(__BOLD)$(__GREEN)Done initializing pulumi$(__RESET)"; \
+	echo "$(__BOLD)$(__CYAN)You can now run other commands, for example:\nrun $(__DIM)$(__BLINK)make preview$(__RESET) $(__BOLD)$(__CYAN)to preview what pulumi thinks it will do when applying changes,\nor $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)"
+
+# TODO: not implemented
+# format: ## Swab the deck and tidy up! 🧹
+# 	@terraform fmt \
+# 		-write=true \
+# 		-recursive
+
+# TODO:
+# https://github.com/terraform-linters/tflint
+# https://aquasecurity.github.io/trivy
+# validate: _set-env ## Inspect the rigging and report any issues! 🔍
+# 	@echo "$(__BOLD)Check terraform formatting...$(__RESET)"; \
+# 	terraform fmt -check=true -recursive; \
+# 	echo "$(__BOLD)Validate terraform configuration...$(__RESET)"; \
+# 	terraform validate; \
+# 	echo "$(__BOLD)Lint terraform files...$(__RESET)"; \
+# 	tflint --var-file "$(__PLCONF_PATH)"; \
+# 	# https://aquasecurity.github.io/trivy/v0.53/docs/coverage/iac/terraform/
+# 	# TIP: suppress issues via inline comments:
+# 	# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments
+# 	echo "$(__BOLD)\nScan for vulnerabilities...$(__RESET)"; \
+# 	trivy conf --exit-code 42 --tf-vars "$(__PLCONF_PATH)" .; \
+# 	echo ""
+
+# TODO: uncomment when validate is implemented 
+# test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
+test: _check-ws ## Run some drills before we plunder! ⚔️  🏹
+	@# suppress target contents output
+	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
+	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
+	if [ -n "$${_GIT_STATUS}" ]; then \
+		echo "$(__BOLD)$(__RED)Working directory has uncommitted changes. Commit or stash your changes before proceeding!$(__RESET)"; \
+		exit 1; \
+	elif [ "$${_GIT_CURRENT_BRANCH}" = "$(__GIT_DEFAULT_BRANCH)" ]; then \
+		echo "$(__BOLD)$(__RED)Unable to proceed in a default git branch. Switch to another branch before proceeding$(__RESET)"; \
+		exit 1; \
+	fi; \
+	_INITIAL_STACK=$$(terraform workspace show | tr -d '[:space:]'); \
+	_TEMP_STACK="test-$$(uuidgen | cut -d '-' -f 1)"; \
+	# use latest changes in default, upstream branch as baseline
+	git pull origin $(__GIT_DEFAULT_BRANCH) && git checkout origin/$(__GIT_DEFAULT_BRANCH); \
+	# ensure vars and inputs are available for testing
+	cp vars/$${_INITIAL_STACK}.tfvars vars/$${_TEMP_STACK}.tfvars; \
+	if [ -f "inputs/${{_INITIAL_STACK}}" ]; then cp -r inputs/$${_INITIAL_STACK} inputs/$${_TEMP_STACK}; fi; \
+	# init
+	make init __ENVIRONMENT="test" NON_INTERACTIVE=true STACK="$${_TEMP_STACK}"; \
+	# check if we're running in a temp workspace
+	_CURRENT_STACK=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_STACK}" != "$${_TEMP_STACK}" ]; then \
+		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_STACK})$(__RESET)"; \
+		exit 1; \
+	fi; \
+	# check backend configuration
+	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
+		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
+		exit 1; \
+	fi; \
+	# apply against origin baseline
+	make apply NON_INTERACTIVE=true; \
+	# switch back to initial branch
+	git switch -; \
+	# re-initialize terraform to pull latest modules, providers, etc from the changeset under test
+	make init __ENVIRONMENT="test" NON_INTERACTIVE=true STACK="$${_TEMP_STACK}"; \
+	# check if we're running in a temp workspace
+	_CURRENT_STACK=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_STACK}" != "$${_TEMP_STACK}" ]; then \
+		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_STACK})$(__RESET)"; \
+		exit 1; \
+	fi; \
+	# check backend configuration
+	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
+		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
+		exit 1; \
+	fi; \
+	# apply to test the changeset
+	make apply NON_INTERACTIVE=true; \
+	echo "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)"; \
+	# cleanup
+	if [ "$(NON_INTERACTIVE)" = "true" ]; then \
+		make destroy; \
+		terraform workspace select "$${_INITIAL_STACK}"; \
+		terraform workspace delete --force "$${_TEMP_STACK}"; \
+	fi; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
+	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+		make destroy; \
+	fi; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_STACK}) workspace and delete ($${_TEMP_STACK}) workspace? [y/Y]: $(__RESET)" ANSWER && \
+	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+		terraform workspace select "$${_INITIAL_STACK}"; \
+		terraform workspace delete --force "$${_TEMP_STACK}"; \
+	fi
+
+plan: _check-ws ## Chart the course before you sail! 🗺️
+	@# hide target content
+	$(call tf,plan,$(__PLCONF_PATH),$(PL_ARGS))
+
+plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? 💣
+	@terraform plan \
+		-input=false \
+		-refresh=true \
+		-destroy \
+		-var-file="$(__PLCONF_PATH)"
+
+# TODO: uncomment when validate is implemented 
+# apply: validate _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
+apply: _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
+	@# hide target content
+	$(call tf,apply,$(__PLCONF_PATH),$(PL_ARGS))
+
+# TODO: uncomment when validate is implemented 
+# destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
+destroy: _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
+	@# hide target content
+	$(call tf,destroy,$(__PLCONF_PATH),$(PL_ARGS))
+
+# TODO: not implemented
+# clean: _check-ws ## Nuke local .terraform directory! 💥
+# 	echo "$(__BOLD)Cleaning up...$(__RESET)"
+# 	_DIR="$(CURDIR)/.terraform" ; \
+# 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+# 	read -p "$(__BOLD)$(__MAGENTA)Do you want to remove ($${_DIR})? [y/Y]: $(__RESET)" ANSWER && \
+# 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+# 		rm -rf "$${_DIR}"; \
+# 		echo "$(__BOLD)$(__CYAN)Removed ($${_DIR})$(__RESET)"; \
+# 	fi
