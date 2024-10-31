@@ -34,7 +34,8 @@ __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 # - https://www.gnu.org/software/make/manual/html_node/Shell-Function.html
 
 ### Pulumi
-STACK ?= $(shell pulumi stack --show-name | tr -d '[:space:]')
+# workaround for when user is logged in to pulumi cloud (default behavior of pulumi)
+STACK ?= $(shell if [ -f "$${HOME}/.pulumi/credentials.json" ]; then pulumi stack --show-name | tr -d '[:space:]'; else echo "null"; fi)
 # Additional, space-separated, pulumi command options
 PL_ARGS ?=
 # TODO: not implemented
@@ -44,9 +45,9 @@ PL_ARGS ?=
 
 ### Google Cloud Platform
 GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
-GCP_PREFIX=wlcm
-GCP_POSTFIX=ffcb87
-QUOTA_PROJECT=$(GCP_PREFIX)-$(GCS_BUCKET)-$(GCP_POSTFIX)
+GCP_PREFIX=pla-101-wlcm
+GCP_POSTFIX=4d54ca3aa
+QUOTA_PROJECT=$(GCP_PREFIX)-plstate-$(GCP_POSTFIX)
 
 ### Terminal
 # Set to 'true' for non-interactive usage
@@ -59,7 +60,7 @@ __ENVIRONMENT ?=
 # TODO: add support for support local/remote backend
 # __BACKEND ?= local
 __GCS_BUCKET=plstate
-__BUCKET_DIR=pulumi/state
+__BUCKET_DIR=state
 __PROD_BUCKET_SUBDIR=prod
 __TEST_BUCKET_SUBDIR=test
 __PLCONF_PATH=./Pulumi.$(STACK).yml
@@ -300,27 +301,54 @@ init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 
 	# Configure pulumi backend
 	echo "$(__BOLD)Configuring the pulumi backend...$(__RESET)"; \
-	_BUCKET_NAME=$$(gcloud storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep '$(__GCS_BUCKET)' | head -n1 | tr -d '[:space:]'); \
-	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
-	_COLOR=$(__GREEN); \
-	([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
-	read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
+	_PULUMI_BACKEND=""; \
+	if [ -f "$${HOME}/.pulumi/credentials.json" ]; then \
+		_PULUMI_BACKEND=$$(cat $${HOME}/.pulumi/credentials.json | jq -r '.current'); \
+	else \
+		_PULUMI_BACKEND="null"; \
+	fi; \
+	echo "$(__BOLD)$(__CYAN)Current backend: $(__DIM)$${_PULUMI_BACKEND}$(__RESET)"; \
+	read -p "$(__BOLD)$(__MAGENTA)Use local backend? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
-		_COLOR=$(__RED); \
+		if [ "$${_PULUMI_BACKEND}" = "null" ]; then \
+			pulumi login --local; \
+		else \
+			if [ "$${_PULUMI_BACKEND}" != "file://~" ]; then \
+				pulumi logout; \
+				pulumi login --local; \
+			fi; \
+		fi; \
+	else # use remote backend \
+		if ! echo "$${_PULUMI_BACKEND}" | grep -q "^gs://"; then \
+			pulumi logout; \
+			_BUCKET_NAME=$$(gcloud storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep '$(__GCS_BUCKET)' | head -n1 | tr -d '[:space:]'); \
+			_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
+			_COLOR=$(__GREEN); \
+			([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
+			read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
+			if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+				_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
+				_COLOR=$(__RED); \
+			fi; \
+			if ([ "$(NON_INTERACTIVE)" = "true" ] && [ "$(__ENVIRONMENT)" = "prod" ]); then \
+				_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
+				_COLOR=$(__RED); \
+			fi; \
+			_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"; \
+			echo "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)"; \
+			[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+			read -p "$(__BOLD)$(__MAGENTA)Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
+			if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
+				echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
+				exit 1; \
+			fi; \
+
+			pulumi login "gs://$${_BUCKET_NAME}/$${_BUCKET_PATH}"; \
+		fi; \
 	fi; \
-	if ([ "$(NON_INTERACTIVE)" = "true" ] && [ "$(__ENVIRONMENT)" = "prod" ]); then \
-		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
-		_COLOR=$(__RED); \
-	fi; \
-	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"; \
-	echo "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)"; \
-	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-	read -p "$(__BOLD)$(__MAGENTA)Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
-	if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
-		echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
-		exit 1; \
-	fi; \
+
+	exit 1
+
 
 	# Need to switch to default workspace, since the target STACK might not exist in the selected bucket
 	# (when changing between prod and non-prod state bucket sub-dirs)
