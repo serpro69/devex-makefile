@@ -22,7 +22,7 @@
 #######################################################################
 
 .ONESHELL:
-.SHELL := /usr/bin/env bash
+.SHELL:=/bin/bash
 .SHELLFLAGS := -ec
 .PHONY: up clean destroy format help init preview preview-destroy test validate
 # https://stackoverflow.com/a/63771055
@@ -35,7 +35,8 @@ __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
 ### Pulumi
 # workaround for when user is logged in to pulumi cloud (default behavior of pulumi)
-STACK ?= $(shell if [ -f "$${HOME}/.pulumi/credentials.json" ]; then pulumi stack --show-name | tr -d '[:space:]'; else echo "null"; fi)
+# STACK ?= $(shell if [ -f "$${HOME}/.pulumi/credentials.json" ]; then pulumi stack --show-name | tr -d '[:space:]'; else echo "null"; fi)
+STACK ?= $(shell pulumi stack --show-name 2>/dev/null || echo "null" | tr -d '[:space:]')
 # Additional, space-separated, pulumi command options
 PL_ARGS ?=
 # TODO: not implemented
@@ -258,12 +259,14 @@ _set-env:
 	fi; \
 	if [ ! -z "$${_ERROR}" ] && [ "$${_ERROR}" -eq 1 ]; then \
 		# https://stackoverflow.com/a/3267187
-		echo "$(__BOLD)$(__RED)Failed to set environment variables\nRun $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__RED)for usage details$(__RESET)"
+		echo "$(__BOLD)$(__RED)Error: failed to set environment variables$(__RESET)"; \
+		echo "$(__BOLD)$(__RED)Run $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__RED)for usage details$(__RESET)"; \
 		exit 1; \
 	fi
 	echo "$(__BOLD)$(__GREEN)Done setting environment variables$(__RESET)"
 	echo ""
 
+init: SHELL:=/bin/bash
 init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 	@echo "$(__BOLD)Initializing pulumi...$(__RESET)"; \
 
@@ -347,45 +350,44 @@ init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 		fi; \
 	fi; \
 
-	exit 1
-
-
-	# Need to switch to default workspace, since the target STACK might not exist in the selected bucket
-	# (when changing between prod and non-prod state bucket sub-dirs)
-	_CURRENT_STACK=$$(terraform workspace show | tr -d '[:space:]') && \
-	if [ ! -z $(STACK) ] && [ "$(STACK)" != "$${_CURRENT_STACK}" ]; then \
-		echo "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)"; \
-		terraform workspace select default; \
+	if [ ! -f "Pulumi.yaml" ]; then \
+		echo "$(__BOLD)Initializing new pulumi project...$(__RESET)"; \
+		pulumi new; \
 	fi; \
 
-	terraform init \
-		-reconfigure \
-		-input=false \
-		-force-copy \
-		-lock=true \
-		-upgrade \
-		-backend=true \
-		-backend-config="bucket=$${_BUCKET_NAME}" \
-		-backend-config="prefix=$${_BUCKET_PATH}"; \
-
-	echo "$(__BOLD)Checking terraform workspace...$(__RESET)"; \
-	_CURRENT_STACK=$$(terraform workspace show | tr -d '[:space:]'); \
-	if [ ! -z $(STACK) ] && [ "$(STACK)" != "$${_CURRENT_STACK}" ]; then \
-		echo "$(__BOLD)Switching to workspace ($(STACK))$(__RESET)"; \
-		terraform workspace select -or-create $(STACK); \
-	else
-		echo "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_STACK})$(__RESET)"; \
+	echo "$(__BOLD)Checking pulumi stack...$(__RESET)"; \
+	_CURRENT_STACK=$$(pulumi stack --show-name 2>/dev/null || echo "null" | tr -d '[:space:]'); \
+	if [ '$(STACK)' = 'null' ] && [ "$${_CURRENT_STACK}" = 'null' ]; then \
+		_AVAILABLE_STACKS=($$(find . -type f -name 'Pulumi.*.yaml' -print0 | xargs -0 -I{} basename {} .yaml | sed 's/^Pulumi\.//')); \
+		select stack in "$${_AVAILABLE_STACKS[@]}"; do \
+			if [[ -n "$$stack" ]]; then \
+				pulumi stack select "$${stack}"; \
+				break; \
+			else \
+				echo "$(__BOLD)$(__RED)Error: no stack set or selected$(__RESET)"; \
+				echo "$(__BOLD)$(__RED)Exiting...$(__RESET)"; \
+				exit 42; \
+			fi; \
+		done; \
+	elif [ ! -z $(STACK) ] && [ "$(STACK)" != 'null' ] && [ "$(STACK)" != "$${_CURRENT_STACK}" ]; then \
+		echo "$(__BOLD)Switching to stack ($(STACK))$(__RESET)"; \
+		pulumi stack select --create $(STACK); \
+	else \
+		echo "$(__BOLD)$(__CYAN)Using stack ($${_CURRENT_STACK})$(__RESET)"; \
 	fi; \
 
-	# Initialize tflint
-	if [ -f ".tflint.hcl" ]; then \
-		echo "$(__BOLD)Initializing tflint...$(__RESET)"; \
-		tflint --init; \
-	fi; \
+	# TODO: not implemented
+	# # Initialize tflint
+	# if [ -f ".tflint.hcl" ]; then \
+	# 	echo "$(__BOLD)Initializing tflint...$(__RESET)"; \
+	# 	tflint --init; \
+	# fi; \
 
 	# Done
 	echo "$(__BOLD)$(__GREEN)Done initializing pulumi$(__RESET)"; \
-	echo "$(__BOLD)$(__CYAN)You can now run other commands, for example:\nrun $(__DIM)$(__BLINK)make preview$(__RESET) $(__BOLD)$(__CYAN)to preview what pulumi thinks it will do when applying changes,\nor $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)"
+	echo "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)"; \
+	echo "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make preview$(__RESET) $(__BOLD)$(__CYAN)to preview what pulumi thinks it will do when applying changes,$(__RESET)"; \
+	echo "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)"
 
 # TODO: not implemented
 # format: ## Swab the deck and tidy up! 🧹
