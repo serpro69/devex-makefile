@@ -356,9 +356,10 @@ init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 		fi; \
 	fi; \
 
-	if [ ! -f "Pulumi.yaml" ]; then \
+	[ ! -f "Pulumi.yaml" ] && read -p "$(__BOLD)$(__MAGENTA)Pulumi.yaml not found. Do you want to initialize a new project? [y/Y]: $(__RESET)" ANSWER && \
+	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		echo "$(__BOLD)Initializing new pulumi project...$(__RESET)"; \
-		pulumi new; \
+		pulumi new --force; \
 	fi; \
 
 	echo "$(__BOLD)Checking pulumi stack...$(__RESET)"; \
