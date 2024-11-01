@@ -44,15 +44,14 @@ __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 STACK ?= $(shell pulumi stack --show-name 2>/dev/null || echo "null" | tr -d '[:space:]')
 # Additional, space-separated, pulumi command options
 PL_ARGS ?=
-# TODO: not implemented
 # Set a resource path to apply first, before fully converging the entire configuration
-# This is a shortcut to avoid calling make apply twice, i.e. 'make apply PL_ARGS='-target="some_resource.name"' && make apply'
-# PL_CONVERGE_FROM ?=
+# This is a shortcut to avoid calling make apply twice, i.e. 'make apply PL_ARGS='--target="some_resource.name" --target-dependents' && make apply'
+PL_CONVERGE_FROM ?=
 
 ### Google Cloud Platform
 GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
-GCP_PREFIX=pla-101-wlcm
-GCP_POSTFIX=a096b3d75
+GCP_PREFIX=test-state-wlcm
+GCP_POSTFIX=c21b45
 QUOTA_PROJECT=$(GCP_PREFIX)-plstate-$(GCP_POSTFIX)
 
 ### Terminal
@@ -62,14 +61,15 @@ NON_INTERACTIVE ?=
 NO_TERM ?=
 
 ### Environment and hidden options
+# test | prod
 __ENVIRONMENT ?=
-# TODO: add support for local/remote backend
-# __BACKEND ?=
 __GCS_BUCKET=plstate
 __BUCKET_DIR=state
 __PROD_BUCKET_SUBDIR=prod
 __TEST_BUCKET_SUBDIR=test
-__PLCONF_PATH=./Pulumi.$(STACK).yaml
+# use 'local' or a fully-qualified backend url
+__PL_BACKEND ?=
+__PL_CONF_PATH=Pulumi.$(STACK).yaml
 __GIT_DEFAULT_BRANCH=main
 # Change output
 # https://www.mankier.com/5/terminfo#Description-Highlighting,_Underlining,_and_Visible_Bells
@@ -145,7 +145,7 @@ define plvars
 			/^# /{ s/^# //; b; }
 			/^#/{ s/^#//; b; }
 			/^[^#]/{ s/^/# /; }
-	}" $(__PLCONF_PATH)
+	}" $(__PL_CONF_PATH)
 endef
 
 # Reusable "function" for 'up', 'destroy' and 'preview' commands
@@ -254,8 +254,8 @@ _set-env:
 		echo "$(__BOLD)$(__RED)STACK was not set$(__RESET)"; \
 		_ERROR=1; \
 	fi; \
-	if [ ! -f "$(__PLCONF_PATH)" ]; then \
-		echo "$(__BOLD)$(__RED)Could not find variables file: $(__PLCONF_PATH)$(__RESET)"; \
+	if [ ! -f "$(__PL_CONF_PATH)" ]; then \
+		echo "$(__BOLD)$(__RED)Could not find variables file: $(__PL_CONF_PATH)$(__RESET)"; \
 		_ERROR=1; \
 	fi; \
 	if [ ! -z "$${_ERROR}" ] && [ "$${_ERROR}" -eq 1 ]; then \
@@ -312,7 +312,17 @@ init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 		_PULUMI_BACKEND="null"; \
 	fi; \
 	echo "$(__BOLD)$(__CYAN)Current backend: $(__DIM)$${_PULUMI_BACKEND}$(__RESET)"; \
-	read -p "$(__BOLD)$(__MAGENTA)Use local backend? [y/Y]: $(__RESET)" ANSWER && \
+
+	if [ "$(__PL_BACKEND)" != "" ]; then \
+		pulumi logout; \
+		if [ "$(__PL_BACKEND)" = "local" ]; then \
+			pulumi login --local; \
+		else \
+			pulumi login "$(__PL_BACKEND)"; \
+		fi; \
+	fi; \
+
+	[ "$(__PL_BACKEND)" = "" ] && read -p "$(__BOLD)$(__MAGENTA)Use local backend? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		if [ "$${_PULUMI_BACKEND}" = "null" ]; then \
 			pulumi login --local; \
@@ -406,12 +416,12 @@ init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 # 	echo "$(__BOLD)Validate terraform configuration...$(__RESET)"; \
 # 	terraform validate; \
 # 	echo "$(__BOLD)Lint terraform files...$(__RESET)"; \
-# 	tflint --var-file "$(__PLCONF_PATH)"; \
+# 	tflint --var-file "$(__PL_CONF_PATH)"; \
 # 	# https://aquasecurity.github.io/trivy/v0.53/docs/coverage/iac/terraform/
 # 	# TIP: suppress issues via inline comments:
 # 	# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments
 # 	echo "$(__BOLD)\nScan for vulnerabilities...$(__RESET)"; \
-# 	trivy conf --exit-code 42 --tf-vars "$(__PLCONF_PATH)" .; \
+# 	trivy conf --exit-code 42 --tf-vars "$(__PL_CONF_PATH)" .; \
 # 	echo ""
 
 # TODO: uncomment when validate is implemented 
@@ -486,7 +496,7 @@ test: ## Run some drills before we plunder! ⚔️  🏹
 
 preview: ## Chart the course before you sail! 🗺️
 	@# hide target content
-	$(call pl,preview,$(__PLCONF_PATH),$(PL_ARGS))
+	$(call pl,preview,$(__PL_CONF_PATH),$(PL_ARGS))
 
 # TODO: Not implemented
 # preview-destroy: ## What would happen if we blow it all to smithereens? 💣
@@ -494,19 +504,19 @@ preview: ## Chart the course before you sail! 🗺️
 # 		-input=false \
 # 		-refresh=true \
 # 		-destroy \
-# 		-var-file="$(__PLCONF_PATH)"
+# 		-var-file="$(__PL_CONF_PATH)"
 
 # TODO: uncomment when validate is implemented 
 # up: validate ## Set course and full speed ahead! ⛵ This will cost you! 💰
 up: ## Set course and full speed ahead! ⛵ This will cost you! 💰
 	@# hide target content
-	$(call pl,up,$(__PLCONF_PATH),$(PL_ARGS))
+	$(call pl,up,$(__PL_CONF_PATH),$(PL_ARGS))
 
 # TODO: uncomment when validate is implemented 
 # destroy: validate ## Release the Kraken! 🐙 This can't be undone! ☠️
 destroy: ## Release the Kraken! 🐙 This can't be undone! ☠️
 	@# hide target content
-	$(call pl,destroy,$(__PLCONF_PATH),$(PL_ARGS))
+	$(call pl,destroy,$(__PL_CONF_PATH),$(PL_ARGS))
 
 # TODO: not implemented
 # clean: ## Nuke local .terraform directory! 💥
