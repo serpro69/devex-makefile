@@ -25,6 +25,10 @@
 # - initialize stack with configuration values taken from an example/template config file
 #   - init stack, then for each configuration property name run `pulumi config set $name`, 
 #     potentially adding `--secret` flag for secure ones
+#
+# - improve non-interactive usage
+#   - pick a "default" backend (local or gcs?) unless otherwise specified via __PL_BACKEND arg
+#   - if a stack wasn't selected from before - error out and prompt user to use STACK arg
 
 .ONESHELL:
 .SHELL:=/bin/bash
