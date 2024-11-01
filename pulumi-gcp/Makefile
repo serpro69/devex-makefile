@@ -139,23 +139,12 @@ else
   endif
 endif
 
-define plvars
-	search_string="$(STACK)"; \
-	sed -i "/$$search_string/{
-			/^# /{ s/^# //; b; }
-			/^#/{ s/^#//; b; }
-			/^[^#]/{ s/^/# /; }
-	}" $(__PL_CONF_PATH)
-endef
-
 # Reusable "function" for 'up', 'destroy' and 'preview' commands
 # Additional, space-separated arguments to the pulumi command are provided via $(PL_ARGS) variable
 define pl
 	$(eval $@_CMD = $(1))
 	$(eval $@_CONF_FILE = $(2))
 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
-
-	$(call plvars,)
 
 	if [ ! "${PL_CONVERGE_FROM}" = "" ]; then \
 		if [ ! "${$@_ARGS}" = "" ]; then \
@@ -188,8 +177,6 @@ define pl
 			--stack='${STACK}' \
 			--config-file='${$@_CONF_FILE}'; \
 	fi
-
-	$(call plvars,)
 endef
 
 help: ## Save our souls! 🛟
