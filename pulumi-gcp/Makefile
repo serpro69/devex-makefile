@@ -157,36 +157,36 @@ define pl
 
 	$(call plvars,)
 
-	if [ ! "${PL_CONVERGE_FROM}" = "" ]; then
-		if [ ! "${$@_ARGS}" = "" ]; then
+	if [ ! "${PL_CONVERGE_FROM}" = "" ]; then \
+		if [ ! "${$@_ARGS}" = "" ]; then \
 			pulumi ${$@_CMD} \
 				--refresh=true \
 				 --config-file='${$@_CONF_FILE}' \
 				--stack='${STACK}' \
 				--target='${PL_CONVERGE_FROM}' \
 				--target-dependents \
-				${$@_ARGS}
-		else
+				${$@_ARGS}; \
+		else \
 			pulumi ${$@_CMD} \
 				--refresh=true \
 				 --config-file='${$@_CONF_FILE}' \
 				--stack='${STACK}' \
 				--target='${PL_CONVERGE_FROM}' \
-				--target-dependents \
-		fi
-	fi
+				--target-dependents; \
+		fi; \
+	fi; \
 
-	if [ ! "${$@_ARGS}" = "" ]; then
+	if [ ! "${$@_ARGS}" = "" ]; then \
 		pulumi ${$@_CMD} \
 			--refresh=true \
 			--stack='${STACK}' \
 			--config-file='${$@_CONF_FILE}' \
 			${$@_ARGS}; \
-	else
+	else \
 		pulumi ${$@_CMD} \
 			--refresh=true \
 			--stack='${STACK}' \
-			--config-file='${$@_CONF_FILE}'
+			--config-file='${$@_CONF_FILE}'; \
 	fi
 
 	$(call plvars,)
