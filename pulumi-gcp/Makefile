@@ -47,7 +47,7 @@ PL_ARGS ?=
 ### Google Cloud Platform
 GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
 GCP_PREFIX=pla-101-wlcm
-GCP_POSTFIX=4d54ca3aa
+GCP_POSTFIX=a096b3d75
 QUOTA_PROJECT=$(GCP_PREFIX)-plstate-$(GCP_POSTFIX)
 
 ### Terminal
@@ -58,8 +58,8 @@ NO_TERM ?=
 
 ### Environment and hidden options
 __ENVIRONMENT ?=
-# TODO: add support for support local/remote backend
-# __BACKEND ?= local
+# TODO: add support for local/remote backend
+# __BACKEND ?=
 __GCS_BUCKET=plstate
 __BUCKET_DIR=state
 __PROD_BUCKET_SUBDIR=prod
@@ -134,62 +134,58 @@ else
   endif
 endif
 
-# TODO: not implemented
-# define tfvars
-# 	search_string="$(STACK)"; \
-# 	sed -i "/$$search_string/{
-# 			/^# /{ s/^# //; b; }
-# 			/^#/{ s/^#//; b; }
-# 			/^[^#]/{ s/^/# /; }
-# 	}" terraform.tfvars
-# endef
+define plvars
+	search_string="$(STACK)"; \
+	sed -i "/$$search_string/{
+			/^# /{ s/^# //; b; }
+			/^#/{ s/^#//; b; }
+			/^[^#]/{ s/^/# /; }
+	}" Pulumi.$(STACK).yml
+endef
 
-# TODO: not implemented
-# Reusable "function" for 'up', 'destroy' and 'plan' commands
-# Additional, space-separated arguments to the terraform command are provided via $(PL_ARGS) variable
-# define tf
-# 	$(eval $@_CMD = $(1))
-# 	$(eval $@_VAR_FILE = $(2))
-# 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
-#
-# 	$(call tfvars,)
-#
-# 	if [ ! "${PL_CONVERGE_FROM}" = "" ]; then
-# 		if [ ! "${$@_ARGS}" = "" ]; then
-# 			terraform ${$@_CMD} \
-# 				-lock=true \
-# 				-input=false \
-# 				-refresh=true \
-# 				-var-file='${$@_VAR_FILE}' \
-# 				-target='${PL_CONVERGE_FROM}' \
-# 				${$@_ARGS}
-# 		else
-# 			terraform ${$@_CMD} \
-# 				-lock=true \
-# 				-input=false \
-# 				-refresh=true \
-# 				-var-file='${$@_VAR_FILE}' \
-# 				-target='${PL_CONVERGE_FROM}'
-# 		fi
-# 	fi
-#
-# 	if [ ! "${$@_ARGS}" = "" ]; then
-# 		terraform ${$@_CMD} \
-# 			-lock=true \
-# 			-input=false \
-# 			-refresh=true \
-# 			-var-file='${$@_VAR_FILE}' \
-# 			${$@_ARGS}
-# 	else
-# 		terraform ${$@_CMD} \
-# 			-lock=true \
-# 			-input=false \
-# 			-refresh=true \
-# 			-var-file='${$@_VAR_FILE}'
-# 	fi
-#
-# 	$(call tfvars,)
-# endef
+# Reusable "function" for 'up', 'destroy' and 'preview' commands
+# Additional, space-separated arguments to the pulumi command are provided via $(PL_ARGS) variable
+define pl
+	$(eval $@_CMD = $(1))
+	$(eval $@_CONF_FILE = $(2))
+	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
+
+	$(call plvars,)
+
+	if [ ! "${PL_CONVERGE_FROM}" = "" ]; then
+		if [ ! "${$@_ARGS}" = "" ]; then
+			pulumi ${$@_CMD} \
+				--refresh=true \
+				 --config-file='${$@_CONF_FILE}' \
+				--stack='${STACK}' \
+				--target='${PL_CONVERGE_FROM}' \
+				--target-dependents \
+				${$@_ARGS}
+		else
+			pulumi ${$@_CMD} \
+				--refresh=true \
+				 --config-file='${$@_CONF_FILE}' \
+				--stack='${STACK}' \
+				--target='${PL_CONVERGE_FROM}' \
+				--target-dependents \
+		fi
+	fi
+
+	if [ ! "${$@_ARGS}" = "" ]; then
+		pulumi ${$@_CMD} \
+			--refresh=true \
+			--stack='${STACK}' \
+			--config-file='${$@_CONF_FILE}' \
+			${$@_ARGS}; \
+	else
+		pulumi ${$@_CMD} \
+			--refresh=true \
+			--stack='${STACK}' \
+			--config-file='${$@_CONF_FILE}'
+	fi
+
+	$(call plvars,)
+endef
 
 help: ## Save our souls! 🛟
 	@echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
@@ -462,12 +458,13 @@ test: ## Run some drills before we plunder! ⚔️  🏹
 	fi; \
 	# apply to test the changeset
 	make apply NON_INTERACTIVE=true; \
+	# check if there are any changes pending afterwards
+	# TODO: make preview NON_INTERACTIVE=true PL_ARGS='--expect-no-changes'; \
 	echo "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)"; \
 	# cleanup
 	if [ "$(NON_INTERACTIVE)" = "true" ]; then \
-		make destroy; \
-		terraform workspace select "$${_INITIAL_STACK}"; \
-		terraform workspace delete --force "$${_TEMP_STACK}"; \
+		make destroy PL_ARGS='--remove'; \
+		pulumi stack select "$${_INITIAL_STACK}"; \
 	fi; \
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
@@ -477,32 +474,33 @@ test: ## Run some drills before we plunder! ⚔️  🏹
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_STACK}) workspace and delete ($${_TEMP_STACK}) workspace? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-		terraform workspace select "$${_INITIAL_STACK}"; \
-		terraform workspace delete --force "$${_TEMP_STACK}"; \
+		pulumi stack select "$${_INITIAL_STACK}"; \
+		pulumi stack rm "$${_TEMP_STACK}"; \
 	fi
 
 preview: ## Chart the course before you sail! 🗺️
 	@# hide target content
-	$(call tf,plan,$(__PLCONF_PATH),$(PL_ARGS))
+	$(call pl,preview,$(__PLCONF_PATH),$(PL_ARGS))
 
-preview-destroy: ## What would happen if we blow it all to smithereens? 💣
-	@terraform plan \
-		-input=false \
-		-refresh=true \
-		-destroy \
-		-var-file="$(__PLCONF_PATH)"
+# TODO: Not implemented
+# preview-destroy: ## What would happen if we blow it all to smithereens? 💣
+# 	@terraform plan \
+# 		-input=false \
+# 		-refresh=true \
+# 		-destroy \
+# 		-var-file="$(__PLCONF_PATH)"
 
 # TODO: uncomment when validate is implemented 
-# apply: validate ## Set course and full speed ahead! ⛵ This will cost you! 💰
+# up: validate ## Set course and full speed ahead! ⛵ This will cost you! 💰
 up: ## Set course and full speed ahead! ⛵ This will cost you! 💰
 	@# hide target content
-	$(call tf,apply,$(__PLCONF_PATH),$(PL_ARGS))
+	$(call pl,up,$(__PLCONF_PATH),$(PL_ARGS))
 
 # TODO: uncomment when validate is implemented 
 # destroy: validate ## Release the Kraken! 🐙 This can't be undone! ☠️
 destroy: ## Release the Kraken! 🐙 This can't be undone! ☠️
 	@# hide target content
-	$(call tf,destroy,$(__PLCONF_PATH),$(PL_ARGS))
+	$(call pl,destroy,$(__PLCONF_PATH),$(PL_ARGS))
 
 # TODO: not implemented
 # clean: ## Nuke local .terraform directory! 💥
