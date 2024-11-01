@@ -29,6 +29,10 @@
 # - improve non-interactive usage
 #   - pick a "default" backend (local or gcs?) unless otherwise specified via __PL_BACKEND arg
 #   - if a stack wasn't selected from before - error out and prompt user to use STACK arg
+# 
+# - support getting/setting encryption passphrase for stacks' secrets via google secret manager
+#   - use stack-name as secret name
+#   - assume passphrases are stored in the same project as state files
 
 .ONESHELL:
 .SHELL:=/bin/bash
