@@ -21,6 +21,11 @@
 #
 #######################################################################
 
+### TODO:
+# - initialize stack with configuration values taken from an example/template config file
+#   - init stack, then for each configuration property name run `pulumi config set $name`, 
+#     potentially adding `--secret` flag for secure ones
+
 .ONESHELL:
 .SHELL:=/bin/bash
 .SHELLFLAGS := -ec
@@ -64,7 +69,7 @@ __GCS_BUCKET=plstate
 __BUCKET_DIR=state
 __PROD_BUCKET_SUBDIR=prod
 __TEST_BUCKET_SUBDIR=test
-__PLCONF_PATH=./Pulumi.$(STACK).yml
+__PLCONF_PATH=./Pulumi.$(STACK).yaml
 __GIT_DEFAULT_BRANCH=main
 # Change output
 # https://www.mankier.com/5/terminfo#Description-Highlighting,_Underlining,_and_Visible_Bells
@@ -140,7 +145,7 @@ define plvars
 			/^# /{ s/^# //; b; }
 			/^#/{ s/^#//; b; }
 			/^[^#]/{ s/^/# /; }
-	}" Pulumi.$(STACK).yml
+	}" $(__PLCONF_PATH)
 endef
 
 # Reusable "function" for 'up', 'destroy' and 'preview' commands
@@ -354,7 +359,8 @@ init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 	echo "$(__BOLD)Checking pulumi stack...$(__RESET)"; \
 	_CURRENT_STACK=$$(pulumi stack --show-name 2>/dev/null || echo "null" | tr -d '[:space:]'); \
 	if [ '$(STACK)' = 'null' ] && [ "$${_CURRENT_STACK}" = 'null' ]; then \
-		_AVAILABLE_STACKS=($$(find . -type f -name 'Pulumi.*.yaml' -print0 | xargs -0 -I{} basename {} .yaml | sed 's/^Pulumi\.//')); \
+		_AVAILABLE_STACKS=($$(pulumi stack ls --json | jq -r '.[].name')); \
+		echo "Available stacks: $${_AVAILABLE_STACKS[@]}"; \
 		select stack in "$${_AVAILABLE_STACKS[@]}"; do \
 			if [[ -n "$$stack" ]]; then \
 				pulumi stack select "$${stack}"; \
