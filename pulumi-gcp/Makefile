@@ -21,18 +21,23 @@
 #
 #######################################################################
 
-### TODO:
+# TODO: ############################################################################################################################
+####################################################################################################################################
 # - initialize stack with configuration values taken from an example/template config file
 #   - init stack, then for each configuration property name run `pulumi config set $name`, 
 #     potentially adding `--secret` flag for secure ones
-#
+####################################################################################################################################
 # - improve non-interactive usage
 #   - pick a "default" backend (local or gcs?) unless otherwise specified via __PL_BACKEND arg
 #   - if a stack wasn't selected from before - error out and prompt user to use STACK arg
-# 
+####################################################################################################################################
 # - support getting/setting encryption passphrase for stacks' secrets via google secret manager
 #   - use stack-name as secret name
 #   - assume passphrases are stored in the same project as state files
+####################################################################################################################################
+# - ask to include pulumi-google-components in the project if it has go.mod file
+#   - possibly only when initializing a new project to avoid spamming on each 'init' invocation
+####################################################################################################################################
 
 .ONESHELL:
 .SHELL:=/bin/bash
