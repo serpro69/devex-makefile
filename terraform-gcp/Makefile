@@ -447,12 +447,14 @@ destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! �
 	@# hide target content
 	$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
 
-clean: _check-ws ## Nuke local .terraform directory! 💥
-	echo "$(__BOLD)Cleaning up...$(__RESET)"
+clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
+	@echo "$(__BOLD)Cleaning up...$(__RESET)"
 	_DIR="$(CURDIR)/.terraform" ; \
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Do you want to remove ($${_DIR})? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		rm -rf "$${_DIR}"; \
 		echo "$(__BOLD)$(__CYAN)Removed ($${_DIR})$(__RESET)"; \
-	fi
+	fi; \
+	# clean-up trivy cache
+	trivy clean --all
