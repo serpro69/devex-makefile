@@ -34,6 +34,8 @@ QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
 NON_INTERACTIVE ?=
 # Set to 'true' to disable some options like colors in environments where $TERM is not set
 NO_TERM ?=
+# Set to `true` to skip validate
+__NO_VALIDATE ?=
 ### Environment options
 __ENVIRONMENT ?=
 __BUCKET_DIR=terraform/state
@@ -348,18 +350,23 @@ format: ## Swab the deck and tidy up! 🧹
 # https://github.com/terraform-linters/tflint
 # https://aquasecurity.github.io/trivy
 validate: _set-env ## Inspect the rigging and report any issues! 🔍
-	@echo "$(__BOLD)Check terraform formatting...$(__RESET)"; \
-	terraform fmt -check=true -recursive; \
-	echo "$(__BOLD)Validate terraform configuration...$(__RESET)"; \
-	terraform validate; \
-	echo "$(__BOLD)Lint terraform files...$(__RESET)"; \
-	tflint --var-file "$(__TFVARS_PATH)"; \
-	# https://aquasecurity.github.io/trivy/v0.53/docs/coverage/iac/terraform/
-	# TIP: suppress issues via inline comments:
-	# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments
-	echo "$(__BOLD)\nScan for vulnerabilities...$(__RESET)"; \
-	trivy conf --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .; \
-	echo ""
+	@if [ "$(__NO_VALIDATE)" = "true" ]; then \
+		echo "$(__BOLD)$(__YELLOW)Skipping validation$(__RESET)"; \
+		echo ""; \
+	else \
+		echo "$(__BOLD)Check terraform formatting...$(__RESET)"; \
+		terraform fmt -check=true -recursive; \
+		echo "$(__BOLD)Validate terraform configuration...$(__RESET)"; \
+		terraform validate; \
+		echo "$(__BOLD)Lint terraform files...$(__RESET)"; \
+		tflint --var-file "$(__TFVARS_PATH)"; \
+		# https://aquasecurity.github.io/trivy/v0.53/docs/coverage/iac/terraform/
+		# TIP: suppress issues via inline comments:
+		# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments
+		echo "$(__BOLD)\nScan for vulnerabilities...$(__RESET)"; \
+		trivy conf --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .; \
+		echo ""; \
+	fi
 
 test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	@# suppress target contents output
