@@ -293,8 +293,8 @@ init: ## Hoist the sails and prepare for the voyage! 🌬️💨
 		echo "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)"; \
 	fi; \
 	# Configure ADC quota project
-	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
-	if [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
+	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq -r '.quota_project_id'); \
+	if [ "$${_CURRENT_QUOTA_PROJECT}" == 'null' ] || [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to update ADC quota-project from ($${_CURRENT_QUOTA_PROJECT}) to ($(QUOTA_PROJECT))? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
@@ -453,7 +453,7 @@ test: ## Run some drills before we plunder! ⚔️  🏹
 		exit 1; \
 	fi; \
 	# check backend configuration
-	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
+	if ! (cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
 		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
 		exit 1; \
 	fi; \
@@ -469,7 +469,7 @@ test: ## Run some drills before we plunder! ⚔️  🏹
 		exit 1; \
 	fi; \
 	# check backend configuration
-	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
+	if ! (cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
 		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
 		exit 1; \
 	fi; \
