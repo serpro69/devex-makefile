@@ -364,7 +364,7 @@ validate: _set-env ## Inspect the rigging and report any issues! 🔍
 		# TIP: suppress issues via inline comments:
 		# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments
 		echo "$(__BOLD)\nScan for vulnerabilities...$(__RESET)"; \
-		trivy conf --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .; \
+		trivy conf --skip-dirs "**/.terraform" --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .; \
 		echo ""; \
 	fi
 
