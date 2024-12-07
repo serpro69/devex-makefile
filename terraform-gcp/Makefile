@@ -112,7 +112,7 @@ endif
 
 define tfvars
 	search_string="$(WORKSPACE)"; \
-	sed -i "/$$search_string$$/{
+	sed -i "/# *$$search_string$$/{
 			/^# /{ s/^# //; b; }
 			/^#/{ s/^#//; b; }
 			/^[^#]/{ s/^/# /; }
