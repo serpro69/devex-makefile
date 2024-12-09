@@ -23,7 +23,10 @@ WORKSPACE ?= $(shell terraform workspace show | tr -d '[:space:]')
 TF_ARGS ?=
 # Set a resource path to apply first, before fully converging the entire configuration
 # This is a shortcut to avoid calling make apply twice, i.e. 'make apply TF_ARGS='-target="some_resource.name"' && make apply'
+# NB! this will apply the changes to the `some_resource.name` even when used with 'plan' target.
 TF_CONVERGE_FROM ?=
+# Terraform plan file path (used with plan, apply, and destroy targets)
+TF_PLAN ?=
 ### Google Cloud Platform
 GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
 GCP_PREFIX=wlcm
@@ -43,6 +46,7 @@ __PROD_BUCKET_SUBDIR=prod
 __TEST_BUCKET_SUBDIR=test
 __TFVARS_PATH=vars/$(WORKSPACE).tfvars
 __GIT_DEFAULT_BRANCH=main
+__DEBUG ?=
 # Change output
 # https://www.mankier.com/5/terminfo#Description-Highlighting,_Underlining,_and_Visible_Bells
 # https://www.linuxquestions.org/questions/linux-newbie-8/tput-for-bold-dim-italic-underline-blinking-reverse-invisible-4175704737/#post6308097
@@ -128,22 +132,60 @@ define tf
 
 	$(call tfvars,)
 
-	if [ ! "$(TF_CONVERGE_FROM)" = "" ]; then \
-		terraform $($@_CMD) \
-			-lock=true \
-			-input=false \
-			-refresh=true \
-			-var-file='$($@_VAR_FILE)' \
-			-target='$(TF_CONVERGE_FROM)' \
-			$($@_ARGS); \
-	else \
-		terraform $($@_CMD) \
-			-lock=true \
-			-input=false \
-			-refresh=true \
-			-var-file='$($@_VAR_FILE)' \
-			$($@_ARGS); \
+	cmd=("terraform" "$($@_CMD)" "-lock=true" "-input=false" "-refresh=true")
+
+	if [ ! "$($@_ARGS)" = "" ]; then
+		cmd+=("$($@_ARGS)")
 	fi
+
+	if [ ! "$(TF_CONVERGE_FROM)" = "" ]; then
+		_tmp_cmd=("$${cmd[@]}")
+ 		_tmp_cmd+=("-var-file=$($@_VAR_FILE)")
+		_tmp_cmd+=("-target=$(TF_CONVERGE_FROM)")
+
+		if [ "$($@_CMD)" = "plan" ]; then
+			if [ "$(__DEBUG)" == "true" ]; then
+				echo "$(__MAGENTA)Terraform converge plan: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)"
+			fi
+			"$${_tmp_cmd[@]}"
+
+			# update the command to run apply instead of plan
+			for i in "$${!_tmp_cmd[@]}"; do
+				if [ "$${_tmp_cmd[$$i]}" = "plan" ]; then
+					_tmp_cmd[$$i]="apply"
+				fi
+			done
+
+			# then apply the changes
+			if [ "$(__DEBUG)" == "true" ]; then
+				echo "$(__MAGENTA)Terraform converge apply: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)"
+			fi
+			"$${_tmp_cmd[@]}"
+		else
+			if [ "$(__DEBUG)" == "true" ]; then
+				echo "$(__MAGENTA)Terraform converge $($@_CMD): $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)"
+			fi
+			"$${_tmp_cmd[@]}"
+		fi
+	fi
+
+	final_cmd=("$${cmd[@]}")
+	if [ ! "$(TF_PLAN)" = "" ]; then
+		if [ "$($@_CMD)" = "plan" ]; then
+ 			final_cmd+=("-var-file=$($@_VAR_FILE)")
+			final_cmd+=("-out=$(TF_PLAN)")
+		else
+			final_cmd+=("$(TF_PLAN)")
+		fi
+	else
+		final_cmd+=("-var-file=$($@_VAR_FILE)")
+	fi
+
+	if [ "$(__DEBUG)" == "true" ]; then
+		echo "$(__MAGENTA)Terraform $($@_CMD): $(__BOLD)$(__SITM)$${final_cmd[@]}$(__RESET)"
+	fi
+
+	"$${final_cmd[@]}"
 
 	$(call tfvars,)
 endef
@@ -231,6 +273,7 @@ _check-ws: _set-env
 		fi; \
 	fi
 
+init: SHELL:=/bin/bash
 init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	@echo "$(__BOLD)Initializing terraform...$(__RESET)"; \
 	echo "$(__BOLD)Checking GCP project...$(__RESET)"; \
@@ -351,6 +394,7 @@ validate: _set-env ## Inspect the rigging and report any issues! 🔍
 		echo ""; \
 	fi
 
+test: SHELL:=/bin/bash
 test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	@# suppress target contents output
 	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
@@ -418,6 +462,7 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 		terraform workspace delete --force "$${_TEMP_WORKSPACE}"; \
 	fi
 
+plan: SHELL:=/bin/bash
 plan: _check-ws ## Chart the course before you sail! 🗺️
 	@# hide target content
 	$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
@@ -429,10 +474,12 @@ plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? �
 		-destroy \
 		-var-file="$(__TFVARS_PATH)"
 
+apply: SHELL:=/bin/bash
 apply: validate _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
 	@# hide target content
 	$(call tf,apply,$(__TFVARS_PATH),$(TF_ARGS))
 
+destroy: SHELL:=/bin/bash
 destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
 	@# hide target content
 	$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
