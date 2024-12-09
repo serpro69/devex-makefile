@@ -366,7 +366,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 
 	# Done
 	echo "$(__BOLD)$(__GREEN)Done initializing terraform$(__RESET)"; \
-	echo "$(__BOLD)$(__CYAN)You can now run other commands, for example:\nrun $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what terraform thinks it will do when applying changes,\nor $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)"
+	echo "$(__BOLD)$(__CYAN)You can now run other commands, for example:$$'\n'run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what terraform thinks it will do when applying changes,$$'\n'or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)"
 
 format: ## Swab the deck and tidy up! 🧹
 	@terraform fmt \
