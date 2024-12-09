@@ -145,7 +145,7 @@ define tf
 
 		if [ "$($@_CMD)" = "plan" ]; then
 			if [ "$(__DEBUG)" == "true" ]; then
-				echo "$(__MAGENTA)Terraform converge plan: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)"
+				printf "$(__MAGENTA)Terraform converge plan: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"
 			fi
 			"$${_tmp_cmd[@]}"
 
@@ -158,12 +158,12 @@ define tf
 
 			# then apply the changes
 			if [ "$(__DEBUG)" == "true" ]; then
-				echo "$(__MAGENTA)Terraform converge apply: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)"
+				printf "$(__MAGENTA)Terraform converge apply: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"
 			fi
 			"$${_tmp_cmd[@]}"
 		else
 			if [ "$(__DEBUG)" == "true" ]; then
-				echo "$(__MAGENTA)Terraform converge $($@_CMD): $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)"
+				printf "$(__MAGENTA)Terraform converge $($@_CMD): $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"
 			fi
 			"$${_tmp_cmd[@]}"
 		fi
@@ -182,7 +182,7 @@ define tf
 	fi
 
 	if [ "$(__DEBUG)" == "true" ]; then
-		echo "$(__MAGENTA)Terraform $($@_CMD): $(__BOLD)$(__SITM)$${final_cmd[@]}$(__RESET)"
+		printf "$(__MAGENTA)Terraform $($@_CMD): $(__BOLD)$(__SITM)$${final_cmd[@]}$(__RESET)\n"
 	fi
 
 	"$${final_cmd[@]}"
@@ -191,92 +191,92 @@ define tf
 endef
 
 help: ## Save our souls! 🛟
-	@echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo "$(__BLUE)This Makefile contains opinionated targets that wrap terraform commands,$(__RESET)"; \
-	echo "$(__BLUE)providing sane defaults, initialization shortcuts for terraform environment,$(__RESET)"; \
-	echo "$(__BLUE)and support for remote terraform backends via Google Cloud Storage.$(__RESET)"; \
-	echo "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo ""; \
-	echo "$(__YELLOW)Usage:$(__RESET)"; \
-	echo "$(__BOLD)> GCP_PROJECT=demo WORKSPACE=demo make init$(__RESET)"; \
-	echo "$(__BOLD)> make plan$(__RESET)"; \
-	echo ""; \
-	echo "$(__DIM)$(__SITM)Tip: Add a $(__BLINK)<space>$(__RESET) $(__DIM)$(__SITM)before the command if it contains sensitive information,$(__RESET)"; \
-	echo "$(__DIM)$(__SITM)to keep it from bash history!$(__RESET)"; \
-	echo ""; \
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo "$(__YELLOW)$(__SITM)Available commands$(__RESET) ⌨️ "; \
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo ""; \
-	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'; \
-	echo ""; \
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮"; \
-	echo "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)"; \
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo ""; \
-	echo "$(__MAGENTA)<WORKSPACE>                    $(__MAGENTA)󱁢$(__RESET) Terraform workspace to (potentially create and) switch to"; \
-	echo "$(__MAGENTA)<GCP_PROJECT>                  $(__BLUE)󱇶$(__RESET) GCP project name $(__SITM)(usually, but not always, the project$(__RESET)"; \
-	echo "                               $(__SITM)that terraform changes are being applied to)$(__RESET)"; \
-	echo "$(__MAGENTA)<GCP_PREFIX>                   $(__GREEN)󰾺$(__RESET) Prefix to use in some other GCP-related variables"; \
-	echo "                               $(__SITM)(e.g., short company name)$(__RESET)"; \
-	echo "$(__MAGENTA)<QUOTA_PROJECT>                $(__CYAN)$(__RESET) GCP quota project name"; \
-	echo "                               $(__SITM)(NB! we assume quota project contains the .tfstate bucket)$(__RESET)"; \
-	echo ""; \
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮"; \
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo ""; \
-	echo "$(__MAGENTA)<TF_ARGS>                      $(__MAGENTA)󱁢$(__RESET) Additional terraform command arguments"; \
-	echo "                               $(__SITM)(e.g., make apply TF_ARGS='-out=foo.out -lock=false')$(__RESET)"; \
-	echo "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts"; \
-	echo "                               $(__SITM)(NB! This does not disable prompts coming from terraform)$(__RESET)"; \
-	echo ""; \
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo "$(__YELLOW)$(__SITM)Dependencies$(__RESET) 📦"; \
-	echo "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)"; \
-	echo ""; \
-	echo "$(__BLUE)- gcloud                       $(__GREEN)https://cloud.google.com/sdk/docs/install$(__RESET)"; \
-	echo "$(__BLUE)- jq                           $(__GREEN)https://github.com/jqlang/jq?tab=readme-ov-file#installation$(__RESET)"; \
-	echo "$(__BLUE)- terraform                    $(__GREEN)https://www.terraform.io/downloads.html$(__RESET)"; \
-	echo "$(__BLUE)- tflint                       $(__GREEN)https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation$(__RESET)"; \
-	echo "$(__BLUE)- trivy                        $(__GREEN)https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy$(__RESET)"; \
-	echo ""; \
-	echo "$(__SITM)$(__DIM)Optional:$(__RESET)"; \
-	echo "$(__BLUE)$(__DIM)- nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)"; \
-	echo ""
+	@printf "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "$(__BLUE)This Makefile contains opinionated targets that wrap terraform commands,$(__RESET)\n"; \
+	printf "$(__BLUE)providing sane defaults, initialization shortcuts for terraform environment,$(__RESET)\n"; \
+	printf "$(__BLUE)and support for remote terraform backends via Google Cloud Storage.$(__RESET)\n"; \
+	printf "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__YELLOW)Usage:$(__RESET)\n"; \
+	printf "$(__BOLD)> GCP_PROJECT=demo WORKSPACE=demo make init$(__RESET)\n"; \
+	printf "$(__BOLD)> make plan$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__DIM)$(__SITM)Tip: Add a $(__BLINK)<space>$(__RESET) $(__DIM)$(__SITM)before the command if it contains sensitive information,$(__RESET)\n"; \
+	printf "$(__DIM)$(__SITM)to keep it from bash history!$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "$(__YELLOW)$(__SITM)Available commands$(__RESET) ⌨️ \n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "\n"; \
+	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n\n", $$1, $$2}'; \
+	printf "\n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮\n"; \
+	printf "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)\n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__MAGENTA)<WORKSPACE>                    $(__MAGENTA)󱁢$(__RESET) Terraform workspace to (potentially create and) switch to\n"; \
+	printf "$(__MAGENTA)<GCP_PROJECT>                  $(__BLUE)󱇶$(__RESET) GCP project name $(__SITM)(usually, but not always, the project$(__RESET)\n"; \
+	printf "                               $(__SITM)that terraform changes are being applied to)$(__RESET)\n"; \
+	printf "$(__MAGENTA)<GCP_PREFIX>                   $(__GREEN)󰾺$(__RESET) Prefix to use in some other GCP-related variables\n"; \
+	printf "                               $(__SITM)(e.g., short company name)$(__RESET)\n"; \
+	printf "$(__MAGENTA)<QUOTA_PROJECT>                $(__CYAN)$(__RESET) GCP quota project name\n"; \
+	printf "                               $(__SITM)(NB! we assume quota project contains the .tfstate bucket)$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮\n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__MAGENTA)<TF_ARGS>                      $(__MAGENTA)󱁢$(__RESET) Additional terraform command arguments\n"; \
+	printf "                               $(__SITM)(e.g., make apply TF_ARGS='-out=foo.out -lock=false')$(__RESET)\n"; \
+	printf "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts\n"; \
+	printf "                               $(__SITM)(NB! This does not disable prompts coming from terraform)$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "$(__YELLOW)$(__SITM)Dependencies$(__RESET) 📦\n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__BLUE)- gcloud                       $(__GREEN)https://cloud.google.com/sdk/docs/install$(__RESET)\n"; \
+	printf "$(__BLUE)- jq                           $(__GREEN)https://github.com/jqlang/jq?tab=readme-ov-file#installation$(__RESET)\n"; \
+	printf "$(__BLUE)- terraform                    $(__GREEN)https://www.terraform.io/downloads.html$(__RESET)\n"; \
+	printf "$(__BLUE)- tflint                       $(__GREEN)https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation$(__RESET)\n"; \
+	printf "$(__BLUE)- trivy                        $(__GREEN)https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__SITM)$(__DIM)Optional:$(__RESET)\n"; \
+	printf "$(__BLUE)$(__DIM)- nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)\n"; \
+	printf "\n"
 
 _set-env:
-	@echo "$(__BOLD)Setting environment variables...$(__RESET)"
+	@printf "$(__BOLD)Setting environment variables...$(__RESET)\n"
 	if [ -z $(WORKSPACE) ]; then \
-		echo "$(__BOLD)$(__RED)WORKSPACE was not set$(__RESET)"; \
+		printf "$(__BOLD)$(__RED)WORKSPACE was not set$(__RESET)\n"; \
 		_ERROR=1; \
 	fi; \
 	if [ ! -f "$(__TFVARS_PATH)" ]; then \
-		echo "$(__BOLD)$(__RED)Could not find variables file: $(__TFVARS_PATH)$(__RESET)"; \
+		printf "$(__BOLD)$(__RED)Could not find variables file: $(__TFVARS_PATH)$(__RESET)\n"; \
 		_ERROR=1; \
 	fi; \
 	if [ ! -z "$${_ERROR}" ] && [ "$${_ERROR}" -eq 1 ]; then \
 		# https://stackoverflow.com/a/3267187
-		echo "$(__BOLD)$(__RED)Failed to set environment variables\nRun $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__RED)for usage details$(__RESET)"
+		printf "$(__BOLD)$(__RED)Failed to set environment variables\nRun $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__RED)for usage details$(__RESET)\n"
 		exit 1; \
 	fi
-	echo "$(__BOLD)$(__GREEN)Done setting environment variables$(__RESET)"
-	echo ""
+	printf "$(__BOLD)$(__GREEN)Done setting environment variables$(__RESET)\n"
+	printf "\n"
 
 _check-ws: _set-env
 	@if [ "$(WORKSPACE)" = "default" ] && [ ! "$(NON_INTERACTIVE)" = "true" ]; then \
 		read -p "$(__BOLD)$(__MAGENTA)It is usually not desirable to use ($(WORKSPACE)) workspace. Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
-			echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
+			printf "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)\n"; \
 			exit 1; \
 		fi; \
 	fi
 
 init: SHELL:=/bin/bash
 init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
-	@echo "$(__BOLD)Initializing terraform...$(__RESET)"; \
-	echo "$(__BOLD)Checking GCP project...$(__RESET)"; \
+	@printf "$(__BOLD)Initializing terraform...$(__RESET)\n"; \
+	printf "$(__BOLD)Checking GCP project...$(__RESET)\n"; \
 	_CURRENT_PROJECT=$$(gcloud config get project | tr -d '[:space:]'); \
 	if [ ! -z $(GCP_PROJECT) ] && [ "$(GCP_PROJECT)" != "$${_CURRENT_PROJECT}" ]; then \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
@@ -284,9 +284,9 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 			gcloud config set project $(GCP_PROJECT) && \
 			gcloud auth login --update-adc ; \
-			echo "$(__BOLD)$(__GREEN)Project changed to $(GCP_PROJECT)$(__RESET)"; \
+			printf "$(__BOLD)$(__GREEN)Project changed to $(GCP_PROJECT)$(__RESET)\n"; \
 		else
-			echo "$(__BOLD)$(__CYAN)Using project ($${_CURRENT_PROJECT})$(__RESET)"; \
+			printf "$(__BOLD)$(__CYAN)Using project ($${_CURRENT_PROJECT})$(__RESET)\n"; \
 		fi; \
 	else
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
@@ -294,7 +294,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 			gcloud auth login --update-adc ; \
 		fi; \
-		echo "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)"; \
+		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
 	fi; \
 
 	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
@@ -303,12 +303,12 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to update ADC quota-project from ($${_CURRENT_QUOTA_PROJECT}) to ($(QUOTA_PROJECT))? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 			gcloud auth application-default set-quota-project $(QUOTA_PROJECT) ; \
-			echo "$(__BOLD)$(__CYAN)Quota-project is set to ($(QUOTA_PROJECT))$(__RESET)"; \
+			printf "$(__BOLD)$(__CYAN)Quota-project is set to ($(QUOTA_PROJECT))$(__RESET)\n"; \
 		fi; \
 	fi; \
 
 	# Configure GCS backend
-	echo "$(__BOLD)Configuring the terraform backend...$(__RESET)"; \
+	printf "$(__BOLD)Configuring the terraform backend...$(__RESET)\n"; \
 	_BUCKET_NAME=$$(gcloud storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
 	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
 	_COLOR=$(__GREEN); \
@@ -323,11 +323,11 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		_COLOR=$(__RED); \
 	fi; \
 	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"; \
-	echo "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)"; \
+	printf "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)\n"; \
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
-		echo "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)"; \
+		printf "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 
@@ -335,7 +335,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	# (when changing between prod and non-prod state bucket sub-dirs)
 	_CURRENT_WORKSPACE=$$(terraform workspace show | tr -d '[:space:]') && \
 	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
-		echo "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)"; \
+		printf "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)\n"; \
 		terraform workspace select default; \
 	fi; \
 
@@ -349,24 +349,24 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		-backend-config="bucket=$${_BUCKET_NAME}" \
 		-backend-config="prefix=$${_BUCKET_PATH}"; \
 
-	echo "$(__BOLD)Checking terraform workspace...$(__RESET)"; \
+	printf "$(__BOLD)Checking terraform workspace...$(__RESET)\n"; \
 	_CURRENT_WORKSPACE=$$(terraform workspace show | tr -d '[:space:]'); \
 	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
-		echo "$(__BOLD)Switching to workspace ($(WORKSPACE))$(__RESET)"; \
+		printf "$(__BOLD)Switching to workspace ($(WORKSPACE))$(__RESET)\n"; \
 		terraform workspace select -or-create $(WORKSPACE); \
 	else
-		echo "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_WORKSPACE})$(__RESET)"; \
+		printf "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_WORKSPACE})$(__RESET)\n"; \
 	fi; \
 
 	# Initialize tflint
 	if [ -f ".tflint.hcl" ]; then \
-		echo "$(__BOLD)Initializing tflint...$(__RESET)"; \
+		printf "$(__BOLD)Initializing tflint...$(__RESET)\n"; \
 		tflint --init; \
 	fi; \
 
 	# Done
-	echo "$(__BOLD)$(__GREEN)Done initializing terraform$(__RESET)"; \
-	echo "$(__BOLD)$(__CYAN)You can now run other commands, for example:$$'\n'run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what terraform thinks it will do when applying changes,$$'\n'or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)"
+	printf "$(__BOLD)$(__GREEN)Done initializing terraform$(__RESET)\n"; \
+	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:\nrun $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what terraform thinks it will do when applying changes,\nor $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"
 
 format: ## Swab the deck and tidy up! 🧹
 	@terraform fmt \
@@ -377,21 +377,21 @@ format: ## Swab the deck and tidy up! 🧹
 # https://aquasecurity.github.io/trivy
 validate: _set-env ## Inspect the rigging and report any issues! 🔍
 	@if [ "$(__NO_VALIDATE)" = "true" ]; then \
-		echo "$(__BOLD)$(__YELLOW)Skipping validation$(__RESET)"; \
-		echo ""; \
+		printf "$(__BOLD)$(__YELLOW)Skipping validation$(__RESET)\n"; \
+		printf "\n"; \
 	else \
-		echo "$(__BOLD)Check terraform formatting...$(__RESET)"; \
+		printf "$(__BOLD)Check terraform formatting...$(__RESET)\n"; \
 		terraform fmt -check=true -recursive; \
-		echo "$(__BOLD)Validate terraform configuration...$(__RESET)"; \
+		printf "$(__BOLD)Validate terraform configuration...$(__RESET)\n"; \
 		terraform validate; \
-		echo "$(__BOLD)Lint terraform files...$(__RESET)"; \
+		printf "$(__BOLD)Lint terraform files...$(__RESET)\n"; \
 		tflint --var-file "$(__TFVARS_PATH)"; \
 		# https://aquasecurity.github.io/trivy/v0.53/docs/coverage/iac/terraform/
 		# TIP: suppress issues via inline comments:
 		# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments
-		echo "$(__BOLD)\nScan for vulnerabilities...$(__RESET)"; \
+		printf "$(__BOLD)\nScan for vulnerabilities...$(__RESET)\n"; \
 		trivy conf --skip-dirs "**/.terraform" --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .; \
-		echo ""; \
+		printf "\n"; \
 	fi
 
 test: SHELL:=/bin/bash
@@ -400,10 +400,10 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
 	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
 	if [ -n "$${_GIT_STATUS}" ]; then \
-		echo "$(__BOLD)$(__RED)Working directory has uncommitted changes. Commit or stash your changes before proceeding!$(__RESET)"; \
+		printf "$(__BOLD)$(__RED)Working directory has uncommitted changes. Commit or stash your changes before proceeding!$(__RESET)\n"; \
 		exit 1; \
 	elif [ "$${_GIT_CURRENT_BRANCH}" = "$(__GIT_DEFAULT_BRANCH)" ]; then \
-		echo "$(__BOLD)$(__RED)Unable to proceed in a default git branch. Switch to another branch before proceeding$(__RESET)"; \
+		printf "$(__BOLD)$(__RED)Unable to proceed in a default git branch. Switch to another branch before proceeding$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 	_INITIAL_WORKSPACE=$$(terraform workspace show | tr -d '[:space:]'); \
@@ -417,12 +417,12 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	make init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
 	# check if we're running in a temp workspace
 	_CURRENT_WORKSPACE=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
-		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)"; \
+		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 	# check backend configuration
 	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
-		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
+		printf "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 	# apply against origin baseline
@@ -433,17 +433,17 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	make init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
 	# check if we're running in a temp workspace
 	_CURRENT_WORKSPACE=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
-		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)"; \
+		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 	# check backend configuration
 	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
-		echo "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)"; \
+		printf "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 	# apply to test the changeset
 	make apply NON_INTERACTIVE=true; \
-	echo "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)"; \
+	printf "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)\n"; \
 	# cleanup
 	if [ "$(NON_INTERACTIVE)" = "true" ]; then \
 		make destroy; \
@@ -485,13 +485,13 @@ destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! �
 	$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
 
 clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
-	@echo "$(__BOLD)Cleaning up...$(__RESET)"
+	@printf "$(__BOLD)Cleaning up...$(__RESET)\n"
 	_DIR="$(CURDIR)/.terraform" ; \
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Do you want to remove ($${_DIR})? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		rm -rf "$${_DIR}"; \
-		echo "$(__BOLD)$(__CYAN)Removed ($${_DIR})$(__RESET)"; \
+		printf "$(__BOLD)$(__CYAN)Removed ($${_DIR})$(__RESET)\n"; \
 	fi; \
 	# clean-up trivy cache
 	trivy clean --all
