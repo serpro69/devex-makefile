@@ -128,38 +128,21 @@ define tf
 
 	$(call tfvars,)
 
-	if [ ! "${TF_CONVERGE_FROM}" = "" ]; then
-		if [ ! "${$@_ARGS}" = "" ]; then
-			terraform ${$@_CMD} \
-				-lock=true \
-				-input=false \
-				-refresh=true \
-				-var-file='${$@_VAR_FILE}' \
-				-target='${TF_CONVERGE_FROM}' \
-				${$@_ARGS}
-		else
-			terraform ${$@_CMD} \
-				-lock=true \
-				-input=false \
-				-refresh=true \
-				-var-file='${$@_VAR_FILE}' \
-				-target='${TF_CONVERGE_FROM}'
-		fi
-	fi
-
-	if [ ! "${$@_ARGS}" = "" ]; then
-		terraform ${$@_CMD} \
+	if [ ! "$(TF_CONVERGE_FROM)" = "" ]; then \
+		terraform $($@_CMD) \
 			-lock=true \
 			-input=false \
 			-refresh=true \
-			-var-file='${$@_VAR_FILE}' \
-			${$@_ARGS}
-	else
-		terraform ${$@_CMD} \
+			-var-file='$($@_VAR_FILE)' \
+			-target='$(TF_CONVERGE_FROM)' \
+			$($@_ARGS); \
+	else \
+		terraform $($@_CMD) \
 			-lock=true \
 			-input=false \
 			-refresh=true \
-			-var-file='${$@_VAR_FILE}'
+			-var-file='$($@_VAR_FILE)' \
+			$($@_ARGS); \
 	fi
 
 	$(call tfvars,)
