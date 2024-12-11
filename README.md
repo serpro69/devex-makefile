@@ -1,6 +1,8 @@
 **devex-makefile**
 
+[![pulumi-gcp](https://img.shields.io/badge/pulumi-gcp-orange?logo=pulumi&style=for-the-badge&logoSize=auto)](./pulumi-gcp)
 [![terraform-gcp](https://img.shields.io/badge/terraform-gcp-purple?logo=terraform&style=for-the-badge&logoSize=auto)](./terraform-gcp)
+[![tofu-gcp](https://img.shields.io/badge/tofu-gcp-yellow?logo=opentofu&style=for-the-badge&logoSize=auto)](./tofu-gcp)
 
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=for-the-badge&logoSize=auto)](LICENSE)
 
