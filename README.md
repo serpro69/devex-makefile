@@ -1,4 +1,14 @@
-**devex-makefile**
+# devex-makefile
+
+<!--toc:start-->
+- [devex-makefile](#devex-makefile)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Contents](#contents)
+    - [Infrastructure as Code](#infrastructure-as-code)
+  - [License](#license)
+  - [Contribute](#contribute)
+<!--toc:end-->
 
 [![pulumi-gcp](https://img.shields.io/badge/pulumi-gcp-orange?logo=pulumi&style=for-the-badge&logoSize=auto)](./pulumi-gcp)
 [![terraform-gcp](https://img.shields.io/badge/terraform-gcp-purple?logo=terraform&style=for-the-badge&logoSize=auto)](./terraform-gcp)
@@ -38,7 +48,11 @@ Each directory should usually contain a readme with usage details for a given ma
 
 ## Contents
 
-- [`terraform-gcp`](./terraform-gcp) - recipes that make life a little easier when working with Terraform and Google Cloud Platform
+### Infrastructure as Code
+
+- [`pulumi-gcp`](./pulumi-gcp) - recipes for working with Pulumi and Google Cloud Platform
+- [`terraform-gcp`](./terraform-gcp) - recipes for working with Terraform and Google Cloud Platform
+- [`tofu-gcp`](./terraform-gcp) - recipes for working with OpenTofu and Google Cloud Platform
 
 ## License
 

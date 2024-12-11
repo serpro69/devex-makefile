@@ -1,4 +1,4 @@
-**[opentofu](https://opentofu.org/) makefile**
+# [OpenTofu](https://opentofu.org/) Makefile
 
 ![TF](https://img.shields.io/badge/OpenTofu%20Version-%3E%3D1.8.x-yellow.svg)
 
@@ -8,9 +8,6 @@
 - [Usage](#usage)
   - [State Lock](#state-lock)
   - [Considerations](#considerations)
-- [License](#license)
-- [Contribute](#contribute)
-- [Ack](#ack)
 - [TODO](#todo)
 <!--toc:end-->
 

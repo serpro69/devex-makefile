@@ -1,4 +1,4 @@
-**terraform-makefile**
+# [Terraform](https://www.terraform.io/) Makefile
 
 ![TF](https://img.shields.io/badge/Terraform%20Version-%3E%3D1.0.0-purple.svg)
 
@@ -8,8 +8,6 @@
 - [Usage](#usage)
   - [State Lock](#state-lock)
   - [Considerations](#considerations)
-- [License](#license)
-- [Contribute](#contribute)
 - [Ack](#ack)
 - [TODO](#todo)
 <!--toc:end-->
@@ -104,7 +102,7 @@ Optional:
 ```
 
 > [!NOTE]
-> Before each target, several private Makefile functions run to configure the remote state backend: `_set-env`, `_check-ws`, ... 
+> Before each target, several private Makefile functions run to configure the remote state backend: `_set-env`, `_check-ws`, ...
 > You should never have to run these yourself.
 
 ### State Lock
@@ -114,8 +112,8 @@ See more in the [State Locking](https://developer.hashicorp.com/terraform/langua
 
 ### Considerations
 
-* Each time this makefile is used, the remote state will be pulled from the GCS backend. This can result in slightly longer iteration times.
-* The makefile uses `.ONESHELL`, which may not be available in all make implementations.
+- Each time this makefile is used, the remote state will be pulled from the GCS backend. This can result in slightly longer iteration times.
+- The makefile uses `.ONESHELL`, which may not be available in all make implementations.
 
 ## Ack
 
