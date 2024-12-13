@@ -132,31 +132,29 @@ define tf
 
 	$(call tfvars,)
 
-	cmd=("terraform" "$($@_CMD)" "-lock=true" "-input=false" "-refresh=true"); \
-
+	@cmd=("terraform" "$($@_CMD)" "-lock=true" "-input=false" "-refresh=true"); \
 	if [ ! "$($@_ARGS)" = "" ]; then \
 		cmd+=("$($@_ARGS)"); \
 	fi; \
-
+	`# first handle tf_converge_from option`; \
 	if [ ! "$(TF_CONVERGE_FROM)" = "" ]; then \
 		_tmp_cmd=("$${cmd[@]}"); \
  		_tmp_cmd+=("-var-file=$($@_VAR_FILE)"); \
 		_tmp_cmd+=("-target=$(TF_CONVERGE_FROM)"); \
-
+		`# always apply the target resource, even when running plan`; \
 		if [ "$($@_CMD)" = "plan" ]; then \
 			if [ "$(__DEBUG)" == "true" ]; then \
 				printf "$(__MAGENTA)Terraform converge plan: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
 			fi; \
+			`# first run the plan`; \
 			"$${_tmp_cmd[@]}"; \
-
-			`# update the command to run apply instead of plan`; \
-			for i in "$${!_tmp_cmd[@]}"; do; \
+			`# then update the terraform command`; \
+			for i in "$${!_tmp_cmd[@]}"; do \
 				if [ "$${_tmp_cmd[$$i]}" = "plan" ]; then \
 					_tmp_cmd[$$i]="apply"; \
 				fi; \
 			done; \
-
-			`# then apply the changes`; \
+			`# and apply the changes`; \
 			if [ "$(__DEBUG)" == "true" ]; then \
 				printf "$(__MAGENTA)Terraform converge apply: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
 			fi; \
@@ -168,25 +166,26 @@ define tf
 			"$${_tmp_cmd[@]}"; \
 		fi; \
 	fi; \
-
+	`# now we run the final plan/apply/destroy command`; \
 	final_cmd=("$${cmd[@]}"); \
+	`# handle the tf_plan option since it's used differently for plan and apply/destroy`; \
 	if [ ! "$(TF_PLAN)" = "" ]; then \
 		if [ "$($@_CMD)" = "plan" ]; then \
+			`# produce the plan file`; \
  			final_cmd+=("-var-file=$($@_VAR_FILE)"); \
 			final_cmd+=("-out=$(TF_PLAN)"); \
 		else \
+			`# when running apply/destroy we don't need to provide vars because they're embedded into the plan file`; \
 			final_cmd+=("$(TF_PLAN)"); \
 		fi; \
 	else \
 		final_cmd+=("-var-file=$($@_VAR_FILE)"); \
 	fi; \
-
 	if [ "$(__DEBUG)" == "true" ]; then \
 		printf "$(__MAGENTA)Terraform $($@_CMD): $(__BOLD)$(__SITM)$${final_cmd[@]}$(__RESET)\n"; \
 	fi; \
-
+	`# run the command`; \
 	"$${final_cmd[@]}"
-
 	$(call tfvars,)
 endef
 
@@ -461,7 +460,7 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 
 plan: SHELL:=/bin/bash
 plan: _check-ws ## Chart the course before you sail! 🗺️
-	@`# hide target content`; \
+	@`# hide target content`
 	$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
 
 plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? 💣
