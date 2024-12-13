@@ -116,11 +116,13 @@ endif
 
 define tfvars
 	search_string="$(WORKSPACE)"; \
-	sed -i "/# *$$search_string$$/{
-			/^# /{ s/^# //; b; }
-			/^#/{ s/^#//; b; }
-			/^[^#]/{ s/^/# /; }
-	}" terraform.tfvars
+	perl -i -pe 'if (m/#\s*'"$${search_string}"'$$/) { \
+			if (m/^\s*#\s*/) { \
+					s/^\s*#\s*//; \
+			} else { \
+					s/^/# /; \
+			} \
+	}' terraform.tfvars
 endef
 
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
