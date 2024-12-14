@@ -115,7 +115,7 @@ else
 endif
 
 define tfvars
-	search_string="$(WORKSPACE)"; \
+	@search_string="$(WORKSPACE)"; \
 	perl -i -pe 'if (m/#\s*'"$${search_string}"'$$/) { \
 			if (m/^\s*#\s*/) { \
 					s/^\s*#\s*//; \
