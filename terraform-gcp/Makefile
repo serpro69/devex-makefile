@@ -40,7 +40,7 @@ NO_TERM ?=
 # Set to `true` to skip validate
 __NO_VALIDATE ?=
 ### Environment options
-__ENVIRONMENT ?=
+__ENVIRONMENT ?= $(shell cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix // ""' | cut -d '/' -f 3)
 __BUCKET_DIR=terraform/state
 __PROD_BUCKET_SUBDIR=prod
 __TEST_BUCKET_SUBDIR=test
@@ -114,15 +114,28 @@ else
   endif
 endif
 
+# decrypt terraform.$(__ENVIRONMENT).tfvars file if it's encrypted
+# comment out the variables based on a workspace otherwise
 define tfvars
-	@search_string="$(WORKSPACE)"; \
-	perl -i -pe 'if (m/#\s*'"$${search_string}"'$$/) { \
-			if (m/^\s*#\s*/) { \
-					s/^\s*#\s*//; \
-			} else { \
-					s/^/# /; \
-			} \
-	}' terraform.tfvars
+	@if [ -f terraform.$(__ENVIRONMENT).tfvars ]; then \
+		if ! command -v sops &> /dev/null; then \
+			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
+		else \
+			if [ -f terraform.tfvars ]; then \
+				cp terraform.tfvars{,.bak.$$(date +%s%N)}; \
+			fi; \
+			sops decrypt terraform.$(__ENVIRONMENT).tfvars > terraform.tfvars; \
+		fi; \
+	else \
+		search_string="$(WORKSPACE)"; \
+		perl -i -pe 'if (m/#\s*'"$${search_string}"'$$/) { \
+				if (m/^\s*#\s*/) { \
+						s/^\s*#\s*//; \
+				} else { \
+						s/^/# /; \
+				} \
+		}' terraform.tfvars; \
+	fi
 endef
 
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
@@ -206,7 +219,7 @@ help: ## Save our souls! 🛟
 	printf "$(__DIM)$(__SITM)to keep it from bash history!$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
-	printf "$(__YELLOW)$(__SITM)Available commands$(__RESET) ⌨️ \n"; \
+	printf "$(__YELLOW)$(__SITM)Available commands$(__RESET) ⌨️\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
 	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n\n", $$1, $$2}'; \
@@ -237,14 +250,16 @@ help: ## Save our souls! 🛟
 	printf "$(__YELLOW)$(__SITM)Dependencies$(__RESET) 📦\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
-	printf "$(__BLUE)- gcloud                       $(__GREEN)https://cloud.google.com/sdk/docs/install$(__RESET)\n"; \
-	printf "$(__BLUE)- jq                           $(__GREEN)https://github.com/jqlang/jq?tab=readme-ov-file#installation$(__RESET)\n"; \
-	printf "$(__BLUE)- terraform                    $(__GREEN)https://www.terraform.io/downloads.html$(__RESET)\n"; \
-	printf "$(__BLUE)- tflint                       $(__GREEN)https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation$(__RESET)\n"; \
-	printf "$(__BLUE)- trivy                        $(__GREEN)https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy$(__RESET)\n"; \
+	printf "$(__BLUE)gcloud                       $(__GREEN)https://cloud.google.com/sdk/docs/install$(__RESET)\n"; \
+	printf "$(__BLUE)jq                           $(__GREEN)https://github.com/jqlang/jq?tab=readme-ov-file#installation$(__RESET)\n"; \
+	printf "$(__BLUE)terraform                    $(__GREEN)https://www.terraform.io/downloads.html$(__RESET)\n"; \
+	printf "$(__BLUE)tflint                       $(__GREEN)https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation$(__RESET)\n"; \
+	printf "$(__BLUE)trivy                        $(__GREEN)https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__SITM)$(__DIM)Optional:$(__RESET)\n"; \
-	printf "$(__BLUE)$(__DIM)- nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__BLUE)$(__DIM)sops                         $(__GREEN)https://github.com/getsops/sops?tab=readme-ov-file#download$(__RESET)\n"; \
+	printf "$(__BLUE)$(__DIM)nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)\n"; \
 	printf "\n"
 
 _set-env:
