@@ -57,13 +57,14 @@ Available commands ⌨️
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 apply                          Set course and full speed ahead! ⛵ This will cost you! 💰
-clean                          Nuke local .terraform directory! 💥
+clean                          Nuke local .terraform directory and tools' caches! 💥
 destroy                        Release the Kraken! 🐙 This can't be undone! ☠️
 format                         Swab the deck and tidy up! 🧹
 help                           Save our souls! 🛟
 init                           Hoist the sails and prepare for the voyage! 🌬️💨
 plan-destroy                   What would happen if we blow it all to smithereens? 💣
 plan                           Chart the course before you sail! 🗺️
+test                           Run some drills before we plunder! ⚔️  🏹
 validate                       Inspect the rigging and report any issues! 🔍
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -81,24 +82,27 @@ Input variables for 'init' 🧮
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Input variables 🧮
-(Note: these are used with other targets!)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 <TF_ARGS>                      󱁢 Additional terraform command arguments
                                (e.g., make apply TF_ARGS='-out=foo.out -lock=false')
+<NON_INTERACTIVE>               Set to 'true' to disable Makefile prompts
+                               (NB! This does not disable prompts coming from terraform)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Dependencies 📦
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- gcloud                       https://cloud.google.com/sdk/docs/install
-- jq                           https://github.com/jqlang/jq?tab=readme-ov-file#installation
-- terraform                    https://www.terraform.io/downloads.html
-- tflint                       https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation
-- trivy                        https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy
+gcloud                       https://cloud.google.com/sdk/docs/install
+jq                           https://github.com/jqlang/jq?tab=readme-ov-file#installation
+terraform                    https://www.terraform.io/downloads.html
+tflint                       https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation
+trivy                        https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy
 
 Optional:
-- nerd font (for this help)    https://www.nerdfonts.com/
+
+sops                         https://github.com/getsops/sops?tab=readme-ov-file#download
+nerd font (for this help)    https://www.nerdfonts.com/
 ```
 
 > [!NOTE]
