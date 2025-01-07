@@ -117,25 +117,30 @@ endif
 # decrypt terraform.$(__ENVIRONMENT).tfvars file if it's encrypted
 # comment out the variables based on a workspace otherwise
 define tfvars
-	@if [ -f terraform.$(__ENVIRONMENT).tfvars ]; then \
+	@enc_tfvars_file=''; \
+	if [ -f terraform.sops.tfvars ]; then \
+		enc_tfvars_file='terraform.sops.tfvars'; \
+	elif [ -f terraform.sops-$(__ENVIRONMENT).tfvars ]; then \
+		enc_tfvars_file='terraform.sops-$(__ENVIRONMENT).tfvars'; \
+	fi; \
+	if [ -n "$${enc_tfvars_file}" ]; then \
 		if ! command -v sops &> /dev/null; then \
 			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
 		else \
 			if [ -f terraform.tfvars ]; then \
 				cp terraform.tfvars{,.bak.$$(date +%s%N)}; \
 			fi; \
-			sops decrypt terraform.$(__ENVIRONMENT).tfvars > terraform.tfvars; \
+			sops decrypt "$${enc_tfvars_file}" > terraform.tfvars; \
 		fi; \
-	else \
-		search_string="$(WORKSPACE)"; \
-		perl -i -pe 'if (m/#\s*'"$${search_string}"'$$/) { \
-				if (m/^\s*#\s*/) { \
-						s/^\s*#\s*//; \
-				} else { \
-						s/^/# /; \
-				} \
-		}' terraform.tfvars; \
-	fi
+	fi; \
+	search_string="$(WORKSPACE)"; \
+	perl -i -pe 'if (m/#\s*'"$${search_string}"'$$/) { \
+		if (m/^\s*#\s*/) { \
+				s/^\s*#\s*//; \
+		} else { \
+				s/^/# /; \
+		} \
+	}' terraform.tfvars
 endef
 
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
@@ -201,7 +206,6 @@ define tf
 	fi; \
 	`# run the command`; \
 	"$${final_cmd[@]}"
-	$(call tfvars,)
 endef
 
 help: ## Save our souls! 🛟
