@@ -205,7 +205,11 @@ define tf
 		printf "$(__MAGENTA)Terraform $($@_CMD): $(__BOLD)$(__SITM)$${final_cmd[@]}$(__RESET)\n"; \
 	fi; \
 	`# run the command`; \
-	"$${final_cmd[@]}"
+	"$${final_cmd[@]}"; \
+	`# clean up temporary-decrypted tfvars`; \
+	if [ -f terraform.tfvars.sops ] || [ -f terraform.tfvars-$(__ENVIRONMENT).sops ]; then \
+		rm -f terraform.tfvars; \
+	fi
 endef
 
 help: ## Save our souls! 🛟
