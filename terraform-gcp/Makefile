@@ -118,10 +118,10 @@ endif
 # comment out the variables based on a workspace otherwise
 define tfvars
 	@enc_tfvars_file=''; \
-	if [ -f terraform.sops.tfvars ]; then \
-		enc_tfvars_file='terraform.sops.tfvars'; \
-	elif [ -f terraform.sops-$(__ENVIRONMENT).tfvars ]; then \
-		enc_tfvars_file='terraform.sops-$(__ENVIRONMENT).tfvars'; \
+	if [ -f terraform.tfvars.sops ]; then \
+		enc_tfvars_file='terraform.tfvars.sops'; \
+	elif [ -f terraform.tfvars-$(__ENVIRONMENT).sops ]; then \
+		enc_tfvars_file='terraform.tfvars-$(__ENVIRONMENT).sops'; \
 	fi; \
 	if [ -n "$${enc_tfvars_file}" ]; then \
 		if ! command -v sops &> /dev/null; then \
