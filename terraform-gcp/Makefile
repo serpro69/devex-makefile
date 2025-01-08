@@ -398,11 +398,11 @@ validate: _set-env ## Inspect the rigging and report any issues! 🔍
 		printf "\n"; \
 	else \
 		printf "$(__BOLD)Check terraform formatting...$(__RESET)\n"; \
-		terraform fmt -check=true -recursive; \
+		terraform fmt -check=true -recursive || exit 42; \
 		printf "$(__BOLD)Validate terraform configuration...$(__RESET)\n"; \
-		terraform validate; \
+		terraform validate || exit 42; \
 		printf "$(__BOLD)Lint terraform files...$(__RESET)\n"; \
-		tflint --var-file "$(__TFVARS_PATH)"; \
+		tflint --var-file "$(__TFVARS_PATH)" || exit 42; \
 		`# https://aquasecurity.github.io/trivy/v0.53/docs/coverage/iac/terraform/`; \
 		`# TIP: suppress issues via inline comments:`; \
 		`# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments`; \
