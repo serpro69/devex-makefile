@@ -142,7 +142,18 @@ define tfvars
 		} else { \
 				s/^/# /; \
 		} \
-	}' terraform.tfvars
+	}' terraform.tfvars; \
+	enc_ws_tfvars_file='$(__TFVARS_PATH).sops'; \
+	if [ -f "$${enc_ws_tfvars_file}" ]; then \
+		if ! command -v sops &> /dev/null; then \
+			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
+		else \
+			if [ "(__BACKUP_TFVARS)" == "true" ] && [ -f $(__TFVARS_PATH) ]; then \
+				cp $(__TFVARS_PATH){,.bak.$$(date +%s%N)}; \
+			fi; \
+			sops decrypt "$${enc_ws_tfvars_file}" > $(__TFVARS_PATH); \
+		fi; \
+	fi
 endef
 
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
@@ -270,7 +281,7 @@ help: ## Save our souls! 🛟
 	printf "$(__BLUE)$(__DIM)nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)\n"; \
 	printf "\n"
 
-_set-env:
+_set-env: _update-tfvars
 	@printf "$(__BOLD)Setting environment variables...$(__RESET)\n"; \
 	if [ -z $(WORKSPACE) ]; then \
 		printf "$(__BOLD)$(__RED)WORKSPACE was not set$(__RESET)\n"; \
@@ -419,7 +430,7 @@ validate: _set-env ## Inspect the rigging and report any issues! 🔍
 	fi
 
 test: SHELL:=/bin/bash
-test: validate _check-ws _update-tfvars ## Run some drills before we plunder! ⚔️  🏹
+test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	@`# suppress target contents output`; \
 	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
 	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
@@ -487,11 +498,11 @@ test: validate _check-ws _update-tfvars ## Run some drills before we plunder! �
 	fi
 
 plan: SHELL:=/bin/bash
-plan: _check-ws _update-tfvars ## Chart the course before you sail! 🗺️
+plan: _check-ws ## Chart the course before you sail! 🗺️
 	@`# hide target content`
 	$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
 
-plan-destroy: _check-ws _update-tfvars ## What would happen if we blow it all to smithereens? 💣
+plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? 💣
 	@terraform plan \
 		-input=false \
 		-refresh=true \
@@ -499,12 +510,12 @@ plan-destroy: _check-ws _update-tfvars ## What would happen if we blow it all to
 		-var-file="$(__TFVARS_PATH)"
 
 apply: SHELL:=/bin/bash
-apply: validate _check-ws _update-tfvars ## Set course and full speed ahead! ⛵ This will cost you! 💰
+apply: validate _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
 	@`# hide target content`; \
 	$(call tf,apply,$(__TFVARS_PATH),$(TF_ARGS))
 
 destroy: SHELL:=/bin/bash
-destroy: validate _check-ws _update-tfvars ## Release the Kraken! 🐙 This can't be undone! ☠️
+destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
 	@`# hide target content`; \
 	$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
 
