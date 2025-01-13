@@ -148,10 +148,7 @@ define tfvars
 		if ! command -v sops &> /dev/null; then \
 			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
 		else \
-			if [ "(__BACKUP_TFVARS)" == "true" ] && [ -f $(__TFVARS_PATH) ]; then \
-				cp $(__TFVARS_PATH){,.bak.$$(date +%s%N)}; \
-			fi; \
-			sops decrypt "$${enc_ws_tfvars_file}" > $(__TFVARS_PATH); \
+			sops decrypt "$${enc_ws_tfvars_file}" >> terraform.tfvars; \
 		fi; \
 	fi
 endef
@@ -170,7 +167,11 @@ define tf
 	`# first handle tf_converge_from option`; \
 	if [ ! "$(TF_CONVERGE_FROM)" = "" ]; then \
 		_tmp_cmd=("$${cmd[@]}"); \
- 		_tmp_cmd+=("-var-file=$($@_VAR_FILE)"); \
+		`# NB! need to append var-file option here instead of top-level cmd variable`; \
+		`#     because we need to support applying from pre-made plan files which don't take this option`; \
+		if [ -f "$($@_VAR_FILE)" ]; then \
+			_tmp_cmd+=("-var-file=$($@_VAR_FILE)"); \
+		fi; \
 		_tmp_cmd+=("-target=$(TF_CONVERGE_FROM)"); \
 		`# always apply the target resource, even when running plan`; \
 		if [ "$($@_CMD)" = "plan" ]; then \
@@ -201,16 +202,21 @@ define tf
 	final_cmd=("$${cmd[@]}"); \
 	`# handle the tf_plan option since it's used differently for plan and apply/destroy`; \
 	if [ ! "$(TF_PLAN)" = "" ]; then \
+		`# produce the plan file`; \
 		if [ "$($@_CMD)" = "plan" ]; then \
-			`# produce the plan file`; \
- 			final_cmd+=("-var-file=$($@_VAR_FILE)"); \
+			`# include vars if they exist`; \
+			if [ -f "$($@_VAR_FILE)" ]; then \
+				final_cmd+=("-var-file=$($@_VAR_FILE)"); \
+			fi; \
 			final_cmd+=("-out=$(TF_PLAN)"); \
 		else \
-			`# when running apply/destroy we don't need to provide vars because they're embedded into the plan file`; \
+			`# NB! when running apply/destroy we don't need to provide vars because they're embedded into the plan binary file`; \
 			final_cmd+=("$(TF_PLAN)"); \
 		fi; \
 	else \
-		final_cmd+=("-var-file=$($@_VAR_FILE)"); \
+		if [ -f "$($@_VAR_FILE)" ]; then \
+			final_cmd+=("-var-file=$($@_VAR_FILE)"); \
+		fi; \
 	fi; \
 	if [ "$(__DEBUG)" == "true" ]; then \
 		printf "$(__MAGENTA)Terraform $($@_CMD): $(__BOLD)$(__SITM)$${final_cmd[@]}$(__RESET)\n"; \
@@ -287,7 +293,7 @@ _set-env: _update-tfvars
 		printf "$(__BOLD)$(__RED)WORKSPACE was not set$(__RESET)\n"; \
 		_ERROR=1; \
 	fi; \
-	if [ ! -f "$(__TFVARS_PATH)" ]; then \
+	if [ ! -f "$(__TFVARS_PATH)" ] && [ ! -f "$(__TFVARS_PATH).sops" ]; then \
 		printf "$(__BOLD)$(__RED)Could not find variables file: $(__TFVARS_PATH)$(__RESET)\n"; \
 		_ERROR=1; \
 	fi; \
