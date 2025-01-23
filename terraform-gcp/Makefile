@@ -27,8 +27,10 @@ TF_ARGS ?=
 TF_CONVERGE_FROM ?=
 # Terraform plan file path (used with plan, apply, and destroy targets)
 TF_PLAN ?=
+# Customize gcloud command
+GCLOUD=gcloud
 ### Google Cloud Platform
-GCP_PROJECT ?= $(shell gcloud config get project | tr -d '[:space:]')
+GCP_PROJECT ?= $(shell $(GCLOUD) config get project | tr -d '[:space:]')
 GCP_PREFIX=wlcm
 GCP_POSTFIX=ffcb87
 QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
@@ -321,13 +323,13 @@ init: SHELL:=/bin/bash
 init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	@printf "$(__BOLD)Initializing terraform...$(__RESET)\n"; \
 	printf "$(__BOLD)Checking GCP project...$(__RESET)\n"; \
-	_CURRENT_PROJECT=$$(gcloud config get project | tr -d '[:space:]'); \
+	_CURRENT_PROJECT=$$($(GCLOUD) config get project | tr -d '[:space:]'); \
 	if [ "$(GCP_PROJECT)" != "(unset)" ] && [ ! -z "$(GCP_PROJECT)" ] && [ "$(GCP_PROJECT)" != "$${_CURRENT_PROJECT}" ]; then \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Current project $${_CURRENT_PROJECT}. Do you want to switch project? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			gcloud config set project $(GCP_PROJECT) && \
-			gcloud auth login --update-adc ; \
+			$(GCLOUD) config set project $(GCP_PROJECT) && \
+			$(GCLOUD) auth login --update-adc ; \
 			printf "$(__BOLD)$(__GREEN)Project changed to $(GCP_PROJECT)$(__RESET)\n"; \
 		else \
 			printf "$(__BOLD)$(__CYAN)Using project ($${_CURRENT_PROJECT})$(__RESET)\n"; \
@@ -336,7 +338,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_CURRENT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			gcloud auth login --update-adc ; \
+			$(GCLOUD) auth login --update-adc ; \
 		fi; \
 		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
 	fi; \
@@ -346,13 +348,13 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to update ADC quota-project from ($${_CURRENT_QUOTA_PROJECT}) to ($(QUOTA_PROJECT))? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			gcloud auth application-default set-quota-project $(QUOTA_PROJECT) ; \
+			$(GCLOUD) auth application-default set-quota-project $(QUOTA_PROJECT) ; \
 			printf "$(__BOLD)$(__CYAN)Quota-project is set to ($(QUOTA_PROJECT))$(__RESET)\n"; \
 		fi; \
 	fi; \
 	`# Configure GCS backend`; \
 	printf "$(__BOLD)Configuring the terraform backend...$(__RESET)\n"; \
-	_BUCKET_NAME=$$(gcloud storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
+	_BUCKET_NAME=$$($(GCLOUD) storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
 	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
 	_COLOR=$(__GREEN); \
 	([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
