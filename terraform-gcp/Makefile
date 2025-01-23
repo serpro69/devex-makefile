@@ -7,7 +7,7 @@
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 .ONESHELL:
-.SHELL := /usr/bin/env bash
+.SHELL := $(shell which bash)
 .SHELLFLAGS := -ec
 .PHONY: apply clean destroy format help init plan plan-destroy test validate
 # https://stackoverflow.com/a/63771055
@@ -409,7 +409,9 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	fi; \
 	`# done`; \
 	printf "$(__BOLD)$(__GREEN)Done initializing terraform$(__RESET)\n"; \
-	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:\nrun $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what terraform thinks it will do when applying changes,\nor $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"
+	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"; \
+	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what terraform thinks it will do when applying changes,$(__RESET)\n"; \
+	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"
 
 format: ## Swab the deck and tidy up! 🧹
 	@terraform fmt \
