@@ -420,7 +420,7 @@ format: ## Swab the deck and tidy up! 🧹
 
 # https://github.com/terraform-linters/tflint
 # https://aquasecurity.github.io/trivy
-validate: _set-env ## Inspect the rigging and report any issues! 🔍
+validate: ## Inspect the rigging and report any issues! 🔍
 	@if [ "$(__NO_VALIDATE)" = "true" ]; then \
 		printf "$(__BOLD)$(__YELLOW)Skipping validation$(__RESET)\n"; \
 		printf "\n"; \
