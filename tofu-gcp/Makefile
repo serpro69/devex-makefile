@@ -430,12 +430,20 @@ validate: ## Inspect the rigging and report any issues! 🔍
 		printf "$(__BOLD)Validate tofu configuration...$(__RESET)\n"; \
 		tofu validate || exit 42; \
 		printf "$(__BOLD)Lint terraform files...$(__RESET)\n"; \
-		tflint --var-file "$(__TFVARS_PATH)" || exit 42; \
+		if [ -f $(__TFVARS_PATH) ]; then \
+			tflint --var-file "$(__TFVARS_PATH)" || exit 42; \
+		else \
+			tflint || exit 42; \
+		fi; \
 		`# https://aquasecurity.github.io/trivy/v0.53/docs/coverage/iac/terraform/`; \
 		`# TIP: suppress issues via inline comments:`; \
 		`# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments`; \
 		printf "$(__BOLD)\nScan for vulnerabilities...$(__RESET)\n"; \
-		trivy conf --skip-dirs "**/.terraform" --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .; \
+		if [ -f $(__TFVARS_PATH) ]; then \
+			trivy conf --skip-dirs "**/.terraform" --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .; \
+		else \
+			trivy conf --skip-dirs "**/.terraform" --exit-code 42 .; \
+		fi; \
 		printf "\n"; \
 	fi
 
