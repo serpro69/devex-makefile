@@ -30,7 +30,7 @@ TF_PLAN ?=
 # Customize gcloud command
 GCLOUD=gcloud
 ### Google Cloud Platform
-GCP_PROJECT ?= $(shell $(GCLOUD) config get project | tr -d '[:space:]')
+GCP_PROJECT ?= $(shell $(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]')
 GCP_PREFIX=wlcm
 GCP_POSTFIX=ffcb87
 QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
@@ -323,7 +323,7 @@ init: SHELL:=/bin/bash
 init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	@printf "$(__BOLD)Initializing tofu...$(__RESET)\n"; \
 	printf "$(__BOLD)Checking GCP project...$(__RESET)\n"; \
-	_CURRENT_PROJECT=$$($(GCLOUD) config get project | tr -d '[:space:]'); \
+	_CURRENT_PROJECT=$$($(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]'); \
 	if [ "$(GCP_PROJECT)" != "(unset)" ] && [ ! -z "$(GCP_PROJECT)" ] && [ "$(GCP_PROJECT)" != "$${_CURRENT_PROJECT}" ]; then \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Current project $${_CURRENT_PROJECT}. Do you want to switch project? [y/Y]: $(__RESET)" ANSWER && \
