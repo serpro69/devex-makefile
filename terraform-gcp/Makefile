@@ -30,6 +30,7 @@ TF_PLAN ?=
 # Customize gcloud command
 GCLOUD=gcloud
 ### Google Cloud Platform
+GCP_DEFAULT_CONFIGURATION=default
 GCP_PROJECT ?= $(shell $(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]')
 GCP_PREFIX=wlcm
 GCP_POSTFIX=ffcb87
@@ -319,14 +320,26 @@ _check-ws: _set-env
 _update-tfvars:
 	$(call tfvars,)
 
-init: SHELL:=/bin/bash
+init: SHELL:=$(shell which bash)
 init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	@printf "$(__BOLD)Initializing terraform...$(__RESET)\n"; \
+	printf "$(__BOLD)Checking active GCP configuration...$(__RESET)\n"; \
+	_CURRENT_CONFIG=$$($(GCLOUD) config configurations list --filter='is_active=true' --format='value(name)'); \
+	if [ "$${_CURRENT_CONFIG}" != "$(GCP_DEFAULT_CONFIGURATION)" ]; then \
+		read -p "$(__BOLD)$(__MAGENTA)Current configuration ($${_CURRENT_CONFIG}) does not match default config ($(GCP_DEFAULT_CONFIGURATION)). Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
+		if [ ! "$${ANSWER}" = "y" ] && [ ! "$${ANSWER}" = "Y" ]; then \
+			read -p "$(__BOLD)$(__MAGENTA)Do you want to switch to ($(GCP_DEFAULT_CONFIGURATION)) configuration? [y/Y]: $(__RESET)" ANSWER && \
+			if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+				$(GCLOUD) config configurations activate $(GCP_DEFAULT_CONFIGURATION); \
+			fi; \
+		fi; \
+	fi; \
 	printf "$(__BOLD)Checking GCP project...$(__RESET)\n"; \
+	_DEFAULT_PROJECT=$$($(GCLOUD) config configurations list --filter='is_active=true' --format='value(properties.core.project)'); \
 	_CURRENT_PROJECT=$$($(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]'); \
-	if [ "$(GCP_PROJECT)" != "(unset)" ] && [ ! -z "$(GCP_PROJECT)" ] && [ "$(GCP_PROJECT)" != "$${_CURRENT_PROJECT}" ]; then \
+	if [ "$(GCP_PROJECT)" != "(unset)" ] && [ ! -z "$(GCP_PROJECT)" ] && [ "$(GCP_PROJECT)" != "$${_DEFAULT_PROJECT}" ]; then \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-		read -p "$(__BOLD)$(__MAGENTA)Current project $${_CURRENT_PROJECT}. Do you want to switch project? [y/Y]: $(__RESET)" ANSWER && \
+		read -p "$(__BOLD)$(__MAGENTA)Default project: $${_DEFAULT_PROJECT}, current project: $${_CURRENT_PROJECT}. Do you want to switch project? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 			$(GCLOUD) config set project $(GCP_PROJECT) && \
 			$(GCLOUD) auth login --update-adc ; \
@@ -334,6 +347,14 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		else \
 			printf "$(__BOLD)$(__CYAN)Using project ($${_CURRENT_PROJECT})$(__RESET)\n"; \
 		fi; \
+	fi; \
+	if [ "$${_CURRENT_PROJECT}" != "$${_DEFAULT_PROJECT}" ]; then \
+		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_DEFAULT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
+		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+			$(GCLOUD) auth login --update-adc ; \
+		fi; \
+		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
 	else \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_CURRENT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
