@@ -27,6 +27,9 @@ TF_ARGS ?=
 TF_CONVERGE_FROM ?=
 # Terraform plan file path (used with plan, apply, and destroy targets)
 TF_PLAN ?=
+# Terraform import resource address and ID
+TF_IMPORT_ADDR ?=
+TF_IMPORT_ID ?=
 # Customize gcloud command
 GCLOUD=gcloud
 ### Google Cloud Platform
@@ -271,6 +274,12 @@ help: ## Save our souls! 🛟
 	printf "\n"; \
 	printf "$(__MAGENTA)<TF_ARGS>                      $(__MAGENTA)󱁢$(__RESET) Additional terraform command arguments\n"; \
 	printf "                               $(__SITM)(e.g., make apply TF_ARGS='-out=foo.out -lock=false')$(__RESET)\n"; \
+	printf "$(__MAGENTA)<TF_CONVERGE_FROM>             $(__YELLOW)󱁢$(__RESET) Resource path to apply first\n"; \
+	printf "                               $(__SITM)(before fully converging the entire configuration)$(__RESET)\n"; \
+	printf "$(__MAGENTA)<TF_PLAN>                      $(__YELLOW)󱁢$(__RESET) Terraform plan file path\n"; \
+	printf "                               $(__SITM)(used with 'plan', 'apply' and 'destroy' targets)$(__RESET)\n"; \
+	printf "$(__MAGENTA)<TF_IMPORT_ADDR>               $(__YELLOW)󱁢$(__RESET) Resource ADDR for terraform import command\n"; \
+	printf "$(__MAGENTA)<TF_IMPORT_ID>                 $(__YELLOW)󱁢$(__RESET) Resource ID for terraform import command\n"; \
 	printf "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts\n"; \
 	printf "                               $(__SITM)(NB! This does not disable prompts coming from terraform)$(__RESET)\n"; \
 	printf "\n"; \
@@ -558,6 +567,7 @@ destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! �
 	@`# hide target content`; \
 	$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
 
+clean: SHELL:=/bin/bash
 clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
 	@printf "$(__BOLD)Cleaning up...$(__RESET)\n"; \
 	_DIR="$(CURDIR)/.terraform" ; \
@@ -569,3 +579,16 @@ clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
 	fi; \
 	`# clean-up trivy cache`; \
 	trivy clean --all
+
+import: SHELL:=/bin/bash
+import: _check-ws ## Import state 📦
+	@`# hide target content`; \
+	printf "$(__BOLD)Importing resource state...$(__RESET)\n\n"; \
+	if [ -z '$(TF_IMPORT_ADDR)' ] || [ -z '$(TF_IMPORT_ID)' ]; then \
+		printf "$(__BOLD)$(__RED)TF_IMPORT_ADDR and TF_IMPORT_ID must be set$(__RESET)\n\n"; \
+		terraform import --help; \
+		printf "\n"; \
+		exit 1; \
+	fi; \
+	terraform import -var-file=$(__TFVARS_PATH) '$(TF_IMPORT_ADDR)' '$(TF_IMPORT_ID)'; \
+	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"; \
