@@ -6,6 +6,20 @@
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+################################################################################################
+#                                      NOTE TO DEVELOPERS
+#
+# While editing this file, please respect the following:
+#
+# 1. Various variables, rules, functions, etc should be defined in their corresponding section,
+#    with variables also separated into relevant subsections
+# 2. "Hidden" make variables should start with two underscores `__`
+# 3. All shell variables defined in a given target should start with a single underscore `_`
+#    to avoid name conflicts with any other variables
+# 4. Every new target should be defined in the Targets section
+#
+################################################################################################
+
 .ONESHELL:
 .SHELL := $(shell which bash)
 .SHELLFLAGS := -ec
@@ -17,66 +31,87 @@ __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 # - https://www.gnu.org/software/make/manual/html_node/Flavors.html
 # - https://www.gnu.org/software/make/manual/html_node/Setting.html
 # - https://www.gnu.org/software/make/manual/html_node/Shell-Function.html
+
+################################################################################################
+#                                             COMMANDS
+
+TF     = terraform
+GCLOUD = gcloud
+
+################################################################################################
+#                                             VARIABLES
+
 ### Terraform
-WORKSPACE ?= $(shell terraform workspace show | tr -d '[:space:]')
+
+WORKSPACE        ?= $(shell terraform workspace show | tr -d '[:space:]')
 # Additional, space-separated, terraform command options
-TF_ARGS ?=
+TF_ARGS          ?=
 # Set a resource path to apply first, before fully converging the entire configuration
 # This is a shortcut to avoid calling make apply twice, i.e. 'make apply TF_ARGS='-target="some_resource.name"' && make apply'
 # NB! this will apply the changes to the `some_resource.name` even when used with 'plan' target.
 TF_CONVERGE_FROM ?=
-# Terraform plan file path (used with plan, apply, and destroy targets)
-TF_PLAN ?=
-# Terraform import resource address and ID
-TF_IMPORT_ADDR ?=
-TF_IMPORT_ID ?=
-# Customize gcloud command
-GCLOUD=gcloud
+# Plan file path (used with plan, apply, and destroy targets)
+TF_PLAN          ?=
+# Import resource address and ID
+TF_IMPORT_ADDR   ?=
+TF_IMPORT_ID     ?=
+
 ### Google Cloud Platform
-GCP_DEFAULT_CONFIGURATION=default
-GCP_PROJECT ?= $(shell $(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]')
-GCP_PREFIX=wlcm
-GCP_POSTFIX=ffcb87
-QUOTA_PROJECT=$(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
+
+GCP_DEFAULT_CONFIGURATION =  default
+GCP_PROJECT               ?= $(shell $(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]')
+GCP_PREFIX                =  wlcm
+GCP_POSTFIX               =  ffcb87
+QUOTA_PROJECT             =  $(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
+
 ### Terminal
+
 # Set to 'true' for non-interactive usage
 NON_INTERACTIVE ?=
 # Set to 'true' to disable some options like colors in environments where $TERM is not set
-NO_TERM ?=
+NO_TERM         ?=
 # Set to `true` to skip validate
-__NO_VALIDATE ?=
+__NO_VALIDATE   ?=
+
 ### Environment options
-__ENVIRONMENT ?= $(shell cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix // ""' | cut -d '/' -f 3)
-__BUCKET_DIR=terraform/state
-__PROD_BUCKET_SUBDIR=prod
-__TEST_BUCKET_SUBDIR=test
-__TFVARS_PATH=vars/$(WORKSPACE).tfvars
+
+__ENVIRONMENT        ?= $(shell cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix // ""' | cut -d '/' -f 3)
+__BUCKET_DIR         =  terraform/state
+__PROD_BUCKET_SUBDIR =  prod
+__TEST_BUCKET_SUBDIR =  test
+__TFVARS_PATH        =  vars/$(WORKSPACE).tfvars
 # backup terraform.tfvars before overwriting it with decrypted content
-__BACKUP_TFVARS=false
-__GIT_DEFAULT_BRANCH=main
-__DEBUG ?=
+__BACKUP_TFVARS      =  false
+__GIT_DEFAULT_BRANCH =  main
+__DEBUG              ?=
+
+### Misc
+
 # Change output
 # https://www.mankier.com/5/terminfo#Description-Highlighting,_Underlining,_and_Visible_Bells
 # https://www.linuxquestions.org/questions/linux-newbie-8/tput-for-bold-dim-italic-underline-blinking-reverse-invisible-4175704737/#post6308097
-__RESET=$(shell tput sgr0)
-__BLINK=$(shell tput blink)
-__BOLD=$(shell tput bold)
-__DIM=$(shell tput dim)
-__SITM=$(shell tput sitm)
-__REV=$(shell tput rev)
-__SMSO=$(shell tput smso)
-__SMUL=$(shell tput smul)
+__RESET          = $(shell tput sgr0)
+__BLINK          = $(shell tput blink)
+__BOLD           = $(shell tput bold)
+__DIM            = $(shell tput dim)
+__SITM           = $(shell tput sitm)
+__REV            = $(shell tput rev)
+__SMSO           = $(shell tput smso)
+__SMUL           = $(shell tput smul)
 # https://www.mankier.com/5/terminfo#Description-Color_Handling
-__BLACK=$(shell tput setaf 0)
-__RED=$(shell tput setaf 1)
-__GREEN=$(shell tput setaf 2)
-__YELLOW=$(shell tput setaf 3)
-__BLUE=$(shell tput setaf 4)
-__MAGENTA=$(shell tput setaf 5)
-__CYAN=$(shell tput setaf 6)
-__WHITE=$(shell tput setaf 7)
+__BLACK          = $(shell tput setaf 0)
+__RED            = $(shell tput setaf 1)
+__GREEN          = $(shell tput setaf 2)
+__YELLOW         = $(shell tput setaf 3)
+__BLUE           = $(shell tput setaf 4)
+__MAGENTA        = $(shell tput setaf 5)
+__CYAN           = $(shell tput setaf 6)
+__WHITE          = $(shell tput setaf 7)
 # set to 'true' to disable colors
-__NO_COLORS=false
+__NO_COLORS      = false
+
+################################################################################################
+#                                             RULES
 
 ifeq ($(NO_TERM),true)
   __NO_COLORS=true
@@ -87,22 +122,22 @@ ifeq ($(origin TERM), undefined)
 endif
 
 ifeq ($(__NO_COLORS),true)
-  __RESET=
-  __BLINK=
-  __BOLD=
-  __DIM=
-  __SITM=
-  __REV=
-  __SMSO=
-  __SMUL=
-  __BLACK=
-  __RED=
-  __GREEN=
-  __YELLOW=
-  __BLUE=
-  __MAGENTA=
-  __CYAN=
-  __WHITE=
+	__RESET   =
+  __BLINK   =
+  __BOLD    =
+  __DIM     =
+  __SITM    =
+  __REV     =
+  __SMSO    =
+  __SMUL    =
+  __BLACK   =
+  __RED     =
+  __GREEN   =
+  __YELLOW  =
+  __BLUE    =
+  __MAGENTA =
+  __CYAN    =
+  __WHITE   =
 endif
 
 # Check for necessary tools
@@ -121,6 +156,9 @@ else
     $(error "No trivy in $(PATH), get it from https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy")
   endif
 endif
+
+################################################################################################
+#                                             FUNCTIONS
 
 # decrypt terraform.$(__ENVIRONMENT).tfvars file if it's encrypted
 # comment out the variables based on a workspace otherwise
@@ -166,7 +204,7 @@ define tf
 	$(eval $@_VAR_FILE = $(2))
 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
 
-	@cmd=("terraform" "$($@_CMD)" "-lock=true" "-input=false" "-refresh=true"); \
+	@cmd=("$(TF)" "$($@_CMD)" "-lock=true" "-input=false" "-refresh=true"); \
 	if [ ! "$($@_ARGS)" = "" ]; then \
 		cmd+=("$($@_ARGS)"); \
 	fi; \
@@ -234,6 +272,9 @@ define tf
 		rm -f terraform.tfvars; \
 	fi
 endef
+
+################################################################################################
+#                                             TARGETS
 
 help: ## Save our souls! 🛟
 	@printf "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
@@ -408,13 +449,13 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	printf "Selected bucket $${_BUCKET_NAME}/$${_BUCKET_PATH}\n"; \
 	`# Need to switch to default workspace, since the target WORKSPACE might not exist in the selected bucket`; \
 	`# (when changing between prod and non-prod state bucket sub-dirs)`; \
-	_CURRENT_WORKSPACE=$$(terraform workspace show | tr -d '[:space:]') && \
+	_CURRENT_WORKSPACE=$$($(TF) workspace show | tr -d '[:space:]') && \
 	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
 		printf "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)\n"; \
-		terraform workspace select default; \
+		$(TF) workspace select default; \
 	fi; \
 	`# initialize terraform`; \
-	terraform init \
+	$(TF) init \
 		-reconfigure \
 		-input=false \
 		-force-copy \
@@ -425,10 +466,10 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		-backend-config="prefix=$${_BUCKET_PATH}"; \
 	`# check/switch workspace`; \
 	printf "$(__BOLD)Checking terraform workspace...$(__RESET)\n"; \
-	_CURRENT_WORKSPACE=$$(terraform workspace show | tr -d '[:space:]'); \
+	_CURRENT_WORKSPACE=$$($(TF) workspace show | tr -d '[:space:]'); \
 	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
 		printf "$(__BOLD)Switching to workspace ($(WORKSPACE))$(__RESET)\n"; \
-		terraform workspace select -or-create $(WORKSPACE); \
+		$(TF) workspace select -or-create $(WORKSPACE); \
 	else \
 		printf "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_WORKSPACE})$(__RESET)\n"; \
 	fi; \
@@ -444,7 +485,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"
 
 format: ## Swab the deck and tidy up! 🧹
-	@terraform fmt \
+	@$(TF) fmt \
 		-write=true \
 		-recursive
 
@@ -456,9 +497,9 @@ validate: ## Inspect the rigging and report any issues! 🔍
 		printf "\n"; \
 	else \
 		printf "$(__BOLD)Check terraform formatting...$(__RESET)\n"; \
-		terraform fmt -check=true -recursive || exit 42; \
+		$(TF) fmt -check=true -recursive || exit 42; \
 		printf "$(__BOLD)Validate terraform configuration...$(__RESET)\n"; \
-		terraform validate || exit 42; \
+		$(TF) validate || exit 42; \
 		printf "$(__BOLD)Lint terraform files...$(__RESET)\n"; \
 		if [ -f $(__TFVARS_PATH) ]; then \
 			tflint --var-file "$(__TFVARS_PATH)" || exit 42; \
@@ -489,7 +530,7 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 		printf "$(__BOLD)$(__RED)Unable to proceed in a default git branch. Switch to another branch before proceeding$(__RESET)\n"; \
 		exit 1; \
 	fi; \
-	_INITIAL_WORKSPACE=$$(terraform workspace show | tr -d '[:space:]'); \
+	_INITIAL_WORKSPACE=$$($(TF) workspace show | tr -d '[:space:]'); \
 	_TEMP_WORKSPACE="test-$$(uuidgen | cut -d '-' -f 1)"; \
 	`# use latest changes in default, upstream branch as baseline`; \
 	git pull origin $(__GIT_DEFAULT_BRANCH) && git checkout origin/$(__GIT_DEFAULT_BRANCH); \
@@ -497,9 +538,9 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	cp vars/$${_INITIAL_WORKSPACE}.tfvars vars/$${_TEMP_WORKSPACE}.tfvars; \
 	if [ -f "inputs/${{_INITIAL_WORKSPACE}}" ]; then cp -r inputs/$${_INITIAL_WORKSPACE} inputs/$${_TEMP_WORKSPACE}; fi; \
 	`# init`; \
-	make init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
+	$(MAKE) init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
 	`# check if we're running in a temp workspace`; \
-	_CURRENT_WORKSPACE=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
+	_CURRENT_WORKSPACE=$$($(TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
 		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
 		exit 1; \
 	fi; \
@@ -509,13 +550,13 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 		exit 1; \
 	fi; \
 	`# apply against origin baseline`; \
-	make apply NON_INTERACTIVE=true; \
+	$(MAKE) apply NON_INTERACTIVE=true; \
 	`# switch back to initial branch`; \
 	git switch -; \
 	`# re-initialize terraform to pull latest modules, providers, etc from the changeset under test`; \
-	make init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
+	$(MAKE) init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
 	`# check if we're running in a temp workspace`; \
-	_CURRENT_WORKSPACE=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
+	_CURRENT_WORKSPACE=$$($(TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
 		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
 		exit 1; \
 	fi; \
@@ -525,24 +566,24 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 		exit 1; \
 	fi; \
 	`# apply to test the changeset`; \
-	make apply NON_INTERACTIVE=true; \
+	$(MAKE) apply NON_INTERACTIVE=true; \
 	printf "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)\n"; \
 	`# cleanup`; \
 	if [ "$(NON_INTERACTIVE)" = "true" ]; then \
-		make destroy; \
-		terraform workspace select "$${_INITIAL_WORKSPACE}"; \
-		terraform workspace delete --force "$${_TEMP_WORKSPACE}"; \
+		$(MAKE) destroy; \
+		$(TF) workspace select "$${_INITIAL_WORKSPACE}"; \
+		$(TF) workspace delete --force "$${_TEMP_WORKSPACE}"; \
 	fi; \
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-		make destroy; \
+		$(MAKE) destroy; \
 	fi; \
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_WORKSPACE}) workspace and delete ($${_TEMP_WORKSPACE}) workspace? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-		terraform workspace select "$${_INITIAL_WORKSPACE}"; \
-		terraform workspace delete --force "$${_TEMP_WORKSPACE}"; \
+		$(TF) workspace select "$${_INITIAL_WORKSPACE}"; \
+		$(TF) workspace delete --force "$${_TEMP_WORKSPACE}"; \
 	fi
 
 plan: SHELL:=/bin/bash
@@ -551,7 +592,7 @@ plan: _check-ws ## Chart the course before you sail! 🗺️
 	$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
 
 plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? 💣
-	@terraform plan \
+	@$(TF) plan \
 		-input=false \
 		-refresh=true \
 		-destroy \
@@ -586,9 +627,9 @@ import: _check-ws ## Import state 📦
 	printf "$(__BOLD)Importing resource state...$(__RESET)\n\n"; \
 	if [ -z '$(TF_IMPORT_ADDR)' ] || [ -z '$(TF_IMPORT_ID)' ]; then \
 		printf "$(__BOLD)$(__RED)TF_IMPORT_ADDR and TF_IMPORT_ID must be set$(__RESET)\n\n"; \
-		terraform import --help; \
+		$(TF) import --help; \
 		printf "\n"; \
 		exit 1; \
 	fi; \
-	terraform import -var-file=$(__TFVARS_PATH) '$(TF_IMPORT_ADDR)' '$(TF_IMPORT_ID)'; \
+	$(TF) import -var-file=$(__TFVARS_PATH) '$(TF_IMPORT_ADDR)' '$(TF_IMPORT_ID)'; \
 	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"; \
