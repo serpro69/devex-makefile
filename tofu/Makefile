@@ -35,16 +35,15 @@ __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 ################################################################################################
 #                                             COMMANDS
 
-TF     = terraform
-GCLOUD = gcloud
+TF     = tofu
 
 ################################################################################################
 #                                             VARIABLES
 
-### Terraform
+### Tofu
 
-WORKSPACE        ?= $(shell terraform workspace show | tr -d '[:space:]')
-# Additional, space-separated, terraform command options
+WORKSPACE        ?= $(shell tofu workspace show | tr -d '[:space:]')
+# Additional, space-separated, tofu command options
 TF_ARGS          ?=
 # Set a resource path to apply first, before fully converging the entire configuration
 # This is a shortcut to avoid calling make apply twice, i.e. 'make apply TF_ARGS='-target="some_resource.name"' && make apply'
@@ -55,14 +54,6 @@ TF_PLAN          ?=
 # Import resource address and ID
 TF_IMPORT_ADDR   ?=
 TF_IMPORT_ID     ?=
-
-### Google Cloud Platform
-
-GCP_DEFAULT_CONFIGURATION =  default
-GCP_PROJECT               ?= $(shell $(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]')
-GCP_PREFIX                =  wlcm
-GCP_POSTFIX               =  ffcb87
-QUOTA_PROJECT             =  $(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
 
 ### Terminal
 
@@ -122,7 +113,7 @@ ifeq ($(origin TERM), undefined)
 endif
 
 ifeq ($(__NO_COLORS),true)
-	__RESET   =
+  __RESET   =
   __BLINK   =
   __BOLD    =
   __DIM     =
@@ -144,12 +135,10 @@ endif
 ifneq ($(filter help,$(MAKECMDGOALS)),)
   # Skip checks for help target
 else
-  ifeq (, $(shell which gcloud))
-    $(error "No gcloud in $(PATH), go to https://cloud.google.com/sdk/docs/install, pick your OS, and follow the instructions")
-  else ifeq (, $(shell which jq))
+  ifeq (, $(shell which jq))
     $(error "No jq in $(PATH), please install jq: https://github.com/jqlang/jq?tab=readme-ov-file#installation")
-  else ifeq (, $(shell which terraform))
-    $(error "No terraform in $(PATH), get it from https://www.terraform.io/downloads.html")
+  else ifeq (, $(shell which tofu))
+    $(error "No tofu in $(PATH), get it from https://opentofu.org/docs/intro/install")
   else ifeq (, $(shell which tflint))
     $(error "No tflint in $(PATH), get it from https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation")
   else ifeq (, $(shell which trivy))
@@ -198,7 +187,7 @@ define tfvars
 endef
 
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
-# Additional, space-separated arguments to the terraform command are provided via $(TF_ARGS) variable
+# Additional, space-separated arguments to the tofu command are provided via $(TF_ARGS) variable
 define tf
 	$(eval $@_CMD = $(1))
 	$(eval $@_VAR_FILE = $(2))
@@ -220,11 +209,11 @@ define tf
 		`# always apply the target resource, even when running plan`; \
 		if [ "$($@_CMD)" = "plan" ]; then \
 			if [ "$(__DEBUG)" == "true" ]; then \
-				printf "$(__MAGENTA)Terraform converge plan: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
+				printf "$(__MAGENTA)Tofu converge plan: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
 			fi; \
 			`# first run the plan`; \
 			"$${_tmp_cmd[@]}"; \
-			`# then update the terraform command`; \
+			`# then update the tofu command`; \
 			for i in "$${!_tmp_cmd[@]}"; do \
 				if [ "$${_tmp_cmd[$$i]}" = "plan" ]; then \
 					_tmp_cmd[$$i]="apply"; \
@@ -232,12 +221,12 @@ define tf
 			done; \
 			`# and apply the changes`; \
 			if [ "$(__DEBUG)" == "true" ]; then \
-				printf "$(__MAGENTA)Terraform converge apply: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
+				printf "$(__MAGENTA)Tofu converge apply: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
 			fi; \
 			"$${_tmp_cmd[@]}"; \
 		else \
 			if [ "$(__DEBUG)" == "true" ]; then \
-				printf "$(__MAGENTA)Terraform converge $($@_CMD): $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
+				printf "$(__MAGENTA)Tofu converge $($@_CMD): $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
 			fi; \
 			"$${_tmp_cmd[@]}"; \
 		fi; \
@@ -263,7 +252,7 @@ define tf
 		fi; \
 	fi; \
 	if [ "$(__DEBUG)" == "true" ]; then \
-		printf "$(__MAGENTA)Terraform $($@_CMD): $(__BOLD)$(__SITM)$${final_cmd[@]}$(__RESET)\n"; \
+		printf "$(__MAGENTA)Tofu $($@_CMD): $(__BOLD)$(__SITM)$${final_cmd[@]}$(__RESET)\n"; \
 	fi; \
 	`# run the command`; \
 	"$${final_cmd[@]}"; \
@@ -278,13 +267,12 @@ endef
 
 help: ## Save our souls! 🛟
 	@printf "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
-	printf "$(__BLUE)This Makefile contains opinionated targets that wrap terraform commands,$(__RESET)\n"; \
-	printf "$(__BLUE)providing sane defaults, initialization shortcuts for terraform environment,$(__RESET)\n"; \
-	printf "$(__BLUE)and support for remote terraform backends via Google Cloud Storage.$(__RESET)\n"; \
+	printf "$(__BLUE)This Makefile contains opinionated targets that wrap tofu commands,$(__RESET)\n"; \
+	printf "$(__BLUE)providing sane defaults, initialization shortcuts for tofu environment.$(__RESET)\n"; \
 	printf "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__YELLOW)Usage:$(__RESET)\n"; \
-	printf "$(__BOLD)> GCP_PROJECT=demo WORKSPACE=demo make init$(__RESET)\n"; \
+	printf "$(__BOLD)> WORKSPACE=demo make init$(__RESET)\n"; \
 	printf "$(__BOLD)> make plan$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__DIM)$(__SITM)Tip: Add a $(__BLINK)<space>$(__RESET) $(__DIM)$(__SITM)before the command if it contains sensitive information,$(__RESET)\n"; \
@@ -301,36 +289,29 @@ help: ## Save our souls! 🛟
 	printf "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
-	printf "$(__MAGENTA)<WORKSPACE>                    $(__MAGENTA)󱁢$(__RESET) Terraform workspace to (potentially create and) switch to\n"; \
-	printf "$(__MAGENTA)<GCP_PROJECT>                  $(__BLUE)󱇶$(__RESET) GCP project name $(__SITM)(usually, but not always, the project$(__RESET)\n"; \
-	printf "                               $(__SITM)that terraform changes are being applied to)$(__RESET)\n"; \
-	printf "$(__MAGENTA)<GCP_PREFIX>                   $(__GREEN)󰾺$(__RESET) Prefix to use in some other GCP-related variables\n"; \
-	printf "                               $(__SITM)(e.g., short company name)$(__RESET)\n"; \
-	printf "$(__MAGENTA)<QUOTA_PROJECT>                $(__CYAN)$(__RESET) GCP quota project name\n"; \
-	printf "                               $(__SITM)(NB! we assume quota project contains the .tfstate bucket)$(__RESET)\n"; \
+	printf "$(__MAGENTA)<WORKSPACE>                    $(__YELLOW)$(__RESET) Tofu workspace to (potentially create and) switch to\n"; \
 	printf "\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
-	printf "$(__MAGENTA)<TF_ARGS>                      $(__MAGENTA)󱁢$(__RESET) Additional terraform command arguments\n"; \
+	printf "$(__MAGENTA)<TF_ARGS>                      $(__YELLOW)$(__RESET) Additional tofu command arguments\n"; \
 	printf "                               $(__SITM)(e.g., make apply TF_ARGS='-out=foo.out -lock=false')$(__RESET)\n"; \
-	printf "$(__MAGENTA)<TF_CONVERGE_FROM>             $(__YELLOW)󱁢$(__RESET) Resource path to apply first\n"; \
+	printf "$(__MAGENTA)<TF_CONVERGE_FROM>             $(__YELLOW)$(__RESET) Resource path to apply first\n"; \
 	printf "                               $(__SITM)(before fully converging the entire configuration)$(__RESET)\n"; \
-	printf "$(__MAGENTA)<TF_PLAN>                      $(__YELLOW)󱁢$(__RESET) Terraform plan file path\n"; \
+	printf "$(__MAGENTA)<TF_PLAN>                      $(__YELLOW)$(__RESET) Tofu plan file path\n"; \
 	printf "                               $(__SITM)(used with 'plan', 'apply' and 'destroy' targets)$(__RESET)\n"; \
-	printf "$(__MAGENTA)<TF_IMPORT_ADDR>               $(__YELLOW)󱁢$(__RESET) Resource ADDR for terraform import command\n"; \
-	printf "$(__MAGENTA)<TF_IMPORT_ID>                 $(__YELLOW)󱁢$(__RESET) Resource ID for terraform import command\n"; \
+	printf "$(__MAGENTA)<TF_IMPORT_ADDR>               $(__YELLOW)$(__RESET) Resource ADDR for tofu import command\n"; \
+	printf "$(__MAGENTA)<TF_IMPORT_ID>                 $(__YELLOW)$(__RESET) Resource ID for tofu import command\n"; \
 	printf "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts\n"; \
-	printf "                               $(__SITM)(NB! This does not disable prompts coming from terraform)$(__RESET)\n"; \
+	printf "                               $(__SITM)(NB! This does not disable prompts coming from tofu)$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "$(__YELLOW)$(__SITM)Dependencies$(__RESET) 📦\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
-	printf "$(__BLUE)gcloud                       $(__GREEN)https://cloud.google.com/sdk/docs/install$(__RESET)\n"; \
 	printf "$(__BLUE)jq                           $(__GREEN)https://github.com/jqlang/jq?tab=readme-ov-file#installation$(__RESET)\n"; \
-	printf "$(__BLUE)terraform                    $(__GREEN)https://www.terraform.io/downloads.html$(__RESET)\n"; \
+	printf "$(__BLUE)tofu                         $(__GREEN)https://opentofu.org/docs/intro/install/$(__RESET)\n"; \
 	printf "$(__BLUE)tflint                       $(__GREEN)https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation$(__RESET)\n"; \
 	printf "$(__BLUE)trivy                        $(__GREEN)https://github.com/aquasecurity/trivy?tab=readme-ov-file#get-trivy$(__RESET)\n"; \
 	printf "\n"; \
@@ -372,100 +353,15 @@ _update-tfvars:
 
 init: SHELL:=$(shell which bash)
 init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
-	@printf "$(__BOLD)Initializing terraform...$(__RESET)\n"; \
-	printf "$(__BOLD)Checking active GCP configuration...$(__RESET)\n"; \
-	_CURRENT_CONFIG=$$($(GCLOUD) config configurations list --filter='is_active=true' --format='value(name)'); \
-	if [ "$${_CURRENT_CONFIG}" != "$(GCP_DEFAULT_CONFIGURATION)" ]; then \
-		read -p "$(__BOLD)$(__MAGENTA)Current configuration ($${_CURRENT_CONFIG}) does not match default config ($(GCP_DEFAULT_CONFIGURATION)). Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
-		if [ ! "$${ANSWER}" = "y" ] && [ ! "$${ANSWER}" = "Y" ]; then \
-			read -p "$(__BOLD)$(__MAGENTA)Do you want to switch to ($(GCP_DEFAULT_CONFIGURATION)) configuration? [y/Y]: $(__RESET)" ANSWER && \
-			if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-				$(GCLOUD) config configurations activate $(GCP_DEFAULT_CONFIGURATION); \
-			fi; \
-		fi; \
-	fi; \
-	printf "$(__BOLD)Checking GCP project...$(__RESET)\n"; \
-	_DEFAULT_PROJECT=$$($(GCLOUD) config configurations list --filter='is_active=true' --format='value(properties.core.project)'); \
-	_CURRENT_PROJECT=$$($(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]'); \
-	if [ "$(GCP_PROJECT)" != "(unset)" ] && [ ! -z "$(GCP_PROJECT)" ] && [ "$(GCP_PROJECT)" != "$${_DEFAULT_PROJECT}" ]; then \
-		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-		read -p "$(__BOLD)$(__MAGENTA)Default project: $${_DEFAULT_PROJECT}, current project: $${_CURRENT_PROJECT}. Do you want to switch project? [y/Y]: $(__RESET)" ANSWER && \
-		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(GCLOUD) config set project $(GCP_PROJECT) && \
-			$(GCLOUD) auth login --update-adc ; \
-			printf "$(__BOLD)$(__GREEN)Project changed to $(GCP_PROJECT)$(__RESET)\n"; \
-		else \
-			printf "$(__BOLD)$(__CYAN)Using project ($${_CURRENT_PROJECT})$(__RESET)\n"; \
-		fi; \
-	fi; \
-	if [ "$${_CURRENT_PROJECT}" != "$${_DEFAULT_PROJECT}" ]; then \
-		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_DEFAULT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
-		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(GCLOUD) auth login --update-adc ; \
-		fi; \
-		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
-	else \
-		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_CURRENT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
-		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(GCLOUD) auth login --update-adc ; \
-		fi; \
-		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
-	fi; \
-	`# Check ADC`; \
-	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
-	if [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
-		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-		read -p "$(__BOLD)$(__MAGENTA)Do you want to update ADC quota-project from ($${_CURRENT_QUOTA_PROJECT}) to ($(QUOTA_PROJECT))? [y/Y]: $(__RESET)" ANSWER && \
-		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(GCLOUD) auth application-default set-quota-project $(QUOTA_PROJECT) ; \
-			printf "$(__BOLD)$(__CYAN)Quota-project is set to ($(QUOTA_PROJECT))$(__RESET)\n"; \
-		fi; \
-	fi; \
-	`# Configure GCS backend`; \
-	printf "$(__BOLD)Configuring the terraform backend...$(__RESET)\n"; \
-	_BUCKET_NAME=$$($(GCLOUD) storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
-	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
-	_COLOR=$(__GREEN); \
-	([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
-	read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
-	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
-		_COLOR=$(__RED); \
-	fi; \
-	if ([ "$(NON_INTERACTIVE)" = "true" ] && [ "$(__ENVIRONMENT)" = "prod" ]); then \
-		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
-		_COLOR=$(__RED); \
-	fi; \
-	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"; \
-	printf "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)\n"; \
-	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-	read -p "$(__BOLD)$(__MAGENTA)Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
-	if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
-		printf "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)\n"; \
-		exit 1; \
-	fi; \
-	printf "Selected bucket $${_BUCKET_NAME}/$${_BUCKET_PATH}\n"; \
-	`# Need to switch to default workspace, since the target WORKSPACE might not exist in the selected bucket`; \
-	`# (when changing between prod and non-prod state bucket sub-dirs)`; \
-	_CURRENT_WORKSPACE=$$($(TF) workspace show | tr -d '[:space:]') && \
-	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
-		printf "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)\n"; \
-		$(TF) workspace select default; \
-	fi; \
-	`# initialize terraform`; \
+	@printf "$(__BOLD)Initializing tofu...$(__RESET)\n"; \
 	$(TF) init \
 		-reconfigure \
 		-input=false \
 		-force-copy \
 		-lock=true \
-		-upgrade \
-		-backend=true \
-		-backend-config="bucket=$${_BUCKET_NAME}" \
-		-backend-config="prefix=$${_BUCKET_PATH}"; \
+		-upgrade; \
 	`# check/switch workspace`; \
-	printf "$(__BOLD)Checking terraform workspace...$(__RESET)\n"; \
+	printf "$(__BOLD)Checking tofu workspace...$(__RESET)\n"; \
 	_CURRENT_WORKSPACE=$$($(TF) workspace show | tr -d '[:space:]'); \
 	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
 		printf "$(__BOLD)Switching to workspace ($(WORKSPACE))$(__RESET)\n"; \
@@ -479,9 +375,9 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		tflint --init; \
 	fi; \
 	`# done`; \
-	printf "$(__BOLD)$(__GREEN)Done initializing terraform$(__RESET)\n"; \
+	printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"; \
-	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what terraform thinks it will do when applying changes,$(__RESET)\n"; \
+	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what tofu thinks it will do when applying changes,$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"
 
 format: ## Swab the deck and tidy up! 🧹
@@ -496,9 +392,9 @@ validate: ## Inspect the rigging and report any issues! 🔍
 		printf "$(__BOLD)$(__YELLOW)Skipping validation$(__RESET)\n"; \
 		printf "\n"; \
 	else \
-		printf "$(__BOLD)Check terraform formatting...$(__RESET)\n"; \
+		printf "$(__BOLD)Check tofu formatting...$(__RESET)\n"; \
 		$(TF) fmt -check=true -recursive || exit 42; \
-		printf "$(__BOLD)Validate terraform configuration...$(__RESET)\n"; \
+		printf "$(__BOLD)Validate tofu configuration...$(__RESET)\n"; \
 		$(TF) validate || exit 42; \
 		printf "$(__BOLD)Lint terraform files...$(__RESET)\n"; \
 		if [ -f $(__TFVARS_PATH) ]; then \
@@ -546,14 +442,14 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	fi; \
 	`# check backend configuration`; \
 	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
-		printf "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)\n"; \
+		printf "$(__BOLD)$(__RED)Tofu state is configured with NON-test backend!$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 	`# apply against origin baseline`; \
 	$(MAKE) apply NON_INTERACTIVE=true; \
 	`# switch back to initial branch`; \
 	git switch -; \
-	`# re-initialize terraform to pull latest modules, providers, etc from the changeset under test`; \
+	`# re-initialize tofu to pull latest modules, providers, etc from the changeset under test`; \
 	$(MAKE) init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
 	`# check if we're running in a temp workspace`; \
 	_CURRENT_WORKSPACE=$$($(TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
@@ -562,7 +458,7 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	fi; \
 	`# check backend configuration`; \
 	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
-		printf "$(__BOLD)$(__RED)Terraform state is configured with NON-test backend!$(__RESET)\n"; \
+		printf "$(__BOLD)$(__RED)Tofu state is configured with NON-test backend!$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 	`# apply to test the changeset`; \
