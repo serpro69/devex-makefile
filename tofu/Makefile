@@ -54,6 +54,12 @@ TF_PLAN          ?=
 # Import resource address and ID
 TF_IMPORT_ADDR   ?=
 TF_IMPORT_ID     ?=
+# Encrypt state file with sops
+TFSTATE_ENCRYPT  ?= true
+
+# State file paths
+__TFSTATE_PATH         = terraform.tfstate.d/$(WORKSPACE)/terraform.tfstate
+__TFSTATE_BACKUP_PATH  = $(__TFSTATE_PATH).backup
 
 ### Terminal
 
@@ -66,10 +72,10 @@ __NO_VALIDATE   ?=
 
 ### Environment options
 
-__TFVARS_PATH        =  vars/$(WORKSPACE).tfvars
+__TFVARS_PATH         =  vars/$(WORKSPACE).tfvars
 # backup terraform.tfvars before overwriting it with decrypted content
-__BACKUP_TFVARS      =  false
-__GIT_DEFAULT_BRANCH =  main
+__BACKUP_TFVARS       =  false
+__GIT_DEFAULT_BRANCH  =  main
 __DEBUG              ?=
 
 ### Misc
@@ -180,12 +186,34 @@ define tfvars
 	fi
 endef
 
+define tfstate_encrypt
+	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
+		printf "$(__BOLD)$(__GREEN)Encrypting tfstate files$(__RESET)\n"; \
+		[ -f "$(__TFSTATE_PATH)" ] && sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
+		[ -f "$(__TFSTATE_BACKUP_PATH)" ] && sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
+	else \
+		printf "$(__BOLD)$(__YELLOW)Skipping tfstate encryption$(__RESET)\n"; \
+	fi
+endef
+
+define tfstate_decrypt
+	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
+		printf "$(__BOLD)$(__GREEN)Decrypting tfstate files$(__RESET)\n"; \
+		[ -f "$(__TFSTATE_PATH)" ] && sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
+		[ -f "$(__TFSTATE_BACKUP_PATH)" ] && sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
+	else \
+		printf "$(__BOLD)$(__YELLOW)Skipping tfstate decryption$(__RESET)\n"; \
+	fi
+endef
+
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
 # Additional, space-separated arguments to the tofu command are provided via $(TF_ARGS) variable
 define tf
 	$(eval $@_CMD = $(1))
 	$(eval $@_VAR_FILE = $(2))
 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
+
+	$(call tfstate_decrypt,)
 
 	@cmd=("$(TF)" "$($@_CMD)" "-lock=true" "-input=false" "-refresh=true"); \
 	if [ ! "$($@_ARGS)" = "" ]; then \
@@ -253,7 +281,8 @@ define tf
 	`# clean up temporary-decrypted tfvars`; \
 	if [ -f terraform.tfvars.sops ]; then \
 		rm -f terraform.tfvars; \
-	fi
+	fi; \
+	$(call tfstate_encrypt,)
 endef
 
 ################################################################################################
