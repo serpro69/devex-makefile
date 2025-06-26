@@ -162,7 +162,7 @@ define tfvars
 		if ! command -v sops &> /dev/null; then \
 			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
 		else \
-			if [ "(__BACKUP_TFVARS)" == "true" ] && [ -f terraform.tfvars ]; then \
+			if [ "$(__BACKUP_TFVARS)" == "true" ] && [ -f terraform.tfvars ]; then \
 				cp terraform.tfvars{,.bak.$$(date +%s%N)}; \
 			fi; \
 			sops decrypt "$${enc_tfvars_file}" > terraform.tfvars; \
