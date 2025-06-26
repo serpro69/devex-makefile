@@ -147,6 +147,8 @@ endif
 
 define tfvars
 	@enc_tfvars_file=''; \
+	rm -f terraform.tfvars 2>/dev/null || true; \
+	touch terraform.tfvars; \
 	if [ -f terraform.tfvars.sops ]; then \
 		enc_tfvars_file='terraform.tfvars.sops'; \
 	fi; \
