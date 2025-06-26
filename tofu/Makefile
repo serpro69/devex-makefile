@@ -36,7 +36,6 @@ __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 #                                             COMMANDS
 
 TF     = tofu
-GCLOUD = gcloud
 
 ################################################################################################
 #                                             VARIABLES
@@ -55,14 +54,6 @@ TF_PLAN          ?=
 # Import resource address and ID
 TF_IMPORT_ADDR   ?=
 TF_IMPORT_ID     ?=
-
-### Google Cloud Platform
-
-GCP_DEFAULT_CONFIGURATION =  default
-GCP_PROJECT               ?= $(shell $(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]')
-GCP_PREFIX                =  wlcm
-GCP_POSTFIX               =  ffcb87
-QUOTA_PROJECT             =  $(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
 
 ### Terminal
 
@@ -144,9 +135,7 @@ endif
 ifneq ($(filter help,$(MAKECMDGOALS)),)
   # Skip checks for help target
 else
-  ifeq (, $(shell which gcloud))
-    $(error "No gcloud in $(PATH), go to https://cloud.google.com/sdk/docs/install, pick your OS, and follow the instructions")
-  else ifeq (, $(shell which jq))
+  ifeq ifeq (, $(shell which jq))
     $(error "No jq in $(PATH), please install jq: https://github.com/jqlang/jq?tab=readme-ov-file#installation")
   else ifeq (, $(shell which tofu))
     $(error "No tofu in $(PATH), get it from https://opentofu.org/docs/intro/install")
@@ -279,12 +268,11 @@ endef
 help: ## Save our souls! 🛟
 	@printf "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "$(__BLUE)This Makefile contains opinionated targets that wrap tofu commands,$(__RESET)\n"; \
-	printf "$(__BLUE)providing sane defaults, initialization shortcuts for tofu environment,$(__RESET)\n"; \
-	printf "$(__BLUE)and support for remote tofu backends via Google Cloud Storage.$(__RESET)\n"; \
+	printf "$(__BLUE)providing sane defaults, initialization shortcuts for tofu environment.$(__RESET)\n"; \
 	printf "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__YELLOW)Usage:$(__RESET)\n"; \
-	printf "$(__BOLD)> GCP_PROJECT=demo WORKSPACE=demo make init$(__RESET)\n"; \
+	printf "$(__BOLD)> WORKSPACE=demo make init$(__RESET)\n"; \
 	printf "$(__BOLD)> make plan$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__DIM)$(__SITM)Tip: Add a $(__BLINK)<space>$(__RESET) $(__DIM)$(__SITM)before the command if it contains sensitive information,$(__RESET)\n"; \
@@ -302,12 +290,6 @@ help: ## Save our souls! 🛟
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__MAGENTA)<WORKSPACE>                    $(__YELLOW)$(__RESET) Tofu workspace to (potentially create and) switch to\n"; \
-	printf "$(__MAGENTA)<GCP_PROJECT>                  $(__BLUE)󱇶$(__RESET) GCP project name $(__SITM)(usually, but not always, the project$(__RESET)\n"; \
-	printf "                               $(__SITM)that tofu changes are being applied to)$(__RESET)\n"; \
-	printf "$(__MAGENTA)<GCP_PREFIX>                   $(__GREEN)󰾺$(__RESET) Prefix to use in some other GCP-related variables\n"; \
-	printf "                               $(__SITM)(e.g., short company name)$(__RESET)\n"; \
-	printf "$(__MAGENTA)<QUOTA_PROJECT>                $(__CYAN)$(__RESET) GCP quota project name\n"; \
-	printf "                               $(__SITM)(NB! we assume quota project contains the .tfstate bucket)$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮\n"; \
@@ -328,7 +310,6 @@ help: ## Save our souls! 🛟
 	printf "$(__YELLOW)$(__SITM)Dependencies$(__RESET) 📦\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
-	printf "$(__BLUE)gcloud                       $(__GREEN)https://cloud.google.com/sdk/docs/install$(__RESET)\n"; \
 	printf "$(__BLUE)jq                           $(__GREEN)https://github.com/jqlang/jq?tab=readme-ov-file#installation$(__RESET)\n"; \
 	printf "$(__BLUE)tofu                         $(__GREEN)https://opentofu.org/docs/intro/install/$(__RESET)\n"; \
 	printf "$(__BLUE)tflint                       $(__GREEN)https://github.com/terraform-linters/tflint?tab=readme-ov-file#installation$(__RESET)\n"; \
@@ -373,97 +354,12 @@ _update-tfvars:
 init: SHELL:=$(shell which bash)
 init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	@printf "$(__BOLD)Initializing tofu...$(__RESET)\n"; \
-	printf "$(__BOLD)Checking active GCP configuration...$(__RESET)\n"; \
-	_CURRENT_CONFIG=$$($(GCLOUD) config configurations list --filter='is_active=true' --format='value(name)'); \
-	if [ "$${_CURRENT_CONFIG}" != "$(GCP_DEFAULT_CONFIGURATION)" ]; then \
-		read -p "$(__BOLD)$(__MAGENTA)Current configuration ($${_CURRENT_CONFIG}) does not match default config ($(GCP_DEFAULT_CONFIGURATION)). Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
-		if [ ! "$${ANSWER}" = "y" ] && [ ! "$${ANSWER}" = "Y" ]; then \
-			read -p "$(__BOLD)$(__MAGENTA)Do you want to switch to ($(GCP_DEFAULT_CONFIGURATION)) configuration? [y/Y]: $(__RESET)" ANSWER && \
-			if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-				$(GCLOUD) config configurations activate $(GCP_DEFAULT_CONFIGURATION); \
-			fi; \
-		fi; \
-	fi; \
-	printf "$(__BOLD)Checking GCP project...$(__RESET)\n"; \
-	_DEFAULT_PROJECT=$$($(GCLOUD) config configurations list --filter='is_active=true' --format='value(properties.core.project)'); \
-	_CURRENT_PROJECT=$$($(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]'); \
-	if [ "$(GCP_PROJECT)" != "(unset)" ] && [ ! -z "$(GCP_PROJECT)" ] && [ "$(GCP_PROJECT)" != "$${_DEFAULT_PROJECT}" ]; then \
-		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-		read -p "$(__BOLD)$(__MAGENTA)Default project: $${_DEFAULT_PROJECT}, current project: $${_CURRENT_PROJECT}. Do you want to switch project? [y/Y]: $(__RESET)" ANSWER && \
-		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(GCLOUD) config set project $(GCP_PROJECT) && \
-			$(GCLOUD) auth login --update-adc ; \
-			printf "$(__BOLD)$(__GREEN)Project changed to $(GCP_PROJECT)$(__RESET)\n"; \
-		else \
-			printf "$(__BOLD)$(__CYAN)Using project ($${_CURRENT_PROJECT})$(__RESET)\n"; \
-		fi; \
-	fi; \
-	if [ "$${_CURRENT_PROJECT}" != "$${_DEFAULT_PROJECT}" ]; then \
-		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_DEFAULT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
-		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(GCLOUD) auth login --update-adc ; \
-		fi; \
-		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
-	else \
-		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_CURRENT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
-		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(GCLOUD) auth login --update-adc ; \
-		fi; \
-		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
-	fi; \
-	`# Check ADC`; \
-	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
-	if [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
-		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-		read -p "$(__BOLD)$(__MAGENTA)Do you want to update ADC quota-project from ($${_CURRENT_QUOTA_PROJECT}) to ($(QUOTA_PROJECT))? [y/Y]: $(__RESET)" ANSWER && \
-		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(GCLOUD) auth application-default set-quota-project $(QUOTA_PROJECT) ; \
-			printf "$(__BOLD)$(__CYAN)Quota-project is set to ($(QUOTA_PROJECT))$(__RESET)\n"; \
-		fi; \
-	fi; \
-	`# Configure GCS backend`; \
-	printf "$(__BOLD)Configuring the tofu backend...$(__RESET)\n"; \
-	_BUCKET_NAME=$$($(GCLOUD) storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
-	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
-	_COLOR=$(__GREEN); \
-	([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
-	read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
-	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
-		_COLOR=$(__RED); \
-	fi; \
-	if ([ "$(NON_INTERACTIVE)" = "true" ] && [ "$(__ENVIRONMENT)" = "prod" ]); then \
-		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
-		_COLOR=$(__RED); \
-	fi; \
-	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"; \
-	printf "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)\n"; \
-	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
-	read -p "$(__BOLD)$(__MAGENTA)Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
-	if [ "$${ANSWER}" != "y" ] && [ "$${ANSWER}" != "Y" ]; then \
-		printf "$(__BOLD)$(__YELLOW)Exiting...$(__RESET)\n"; \
-		exit 1; \
-	fi; \
-	printf "Selected bucket $${_BUCKET_NAME}/$${_BUCKET_PATH}\n"; \
-	`# Need to switch to default workspace, since the target WORKSPACE might not exist in the selected bucket`; \
-	`# (when changing between prod and non-prod state bucket sub-dirs)`; \
-	_CURRENT_WORKSPACE=$$($(TF) workspace show | tr -d '[:space:]') && \
-	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
-		printf "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)\n"; \
-		$(TF) workspace select default; \
-	fi; \
-	`# initialize tofu`; \
 	$(TF) init \
 		-reconfigure \
 		-input=false \
 		-force-copy \
 		-lock=true \
-		-upgrade \
-		-backend=true \
-		-backend-config="bucket=$${_BUCKET_NAME}" \
-		-backend-config="prefix=$${_BUCKET_PATH}"; \
+		-upgrade; \
 	`# check/switch workspace`; \
 	printf "$(__BOLD)Checking tofu workspace...$(__RESET)\n"; \
 	_CURRENT_WORKSPACE=$$($(TF) workspace show | tr -d '[:space:]'); \
