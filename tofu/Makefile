@@ -376,7 +376,8 @@ _update-tfvars:
 
 init: SHELL:=$(shell which bash)
 init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
-	@printf "$(__BOLD)Initializing tofu...$(__RESET)\n"; \
+	@$(call tfstate_decrypt,); \
+	printf "$(__BOLD)Initializing tofu...$(__RESET)\n"; \
 	$(TF) init \
 		-reconfigure \
 		-input=false \
@@ -401,7 +402,8 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what tofu thinks it will do when applying changes,$(__RESET)\n"; \
-	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"
+	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"; \
+	$(call tfstate_encrypt,)
 
 format: ## Swab the deck and tidy up! 🧹
 	@$(TF) fmt \
