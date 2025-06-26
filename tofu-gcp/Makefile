@@ -1,4 +1,4 @@
-# Copyright 2024- Serhii Prodanov
+# Copyright 2024-present serpro69
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 #
@@ -122,7 +122,7 @@ ifeq ($(origin TERM), undefined)
 endif
 
 ifeq ($(__NO_COLORS),true)
-	__RESET   =
+  __RESET   =
   __BLINK   =
   __BOLD    =
   __DIM     =
@@ -173,7 +173,7 @@ define tfvars
 		if ! command -v sops &> /dev/null; then \
 			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
 		else \
-			if [ "(__BACKUP_TFVARS)" == "true" ] && [ -f terraform.tfvars ]; then \
+			if [ "$(__BACKUP_TFVARS)" == "true" ] && [ -f terraform.tfvars ]; then \
 				cp terraform.tfvars{,.bak.$$(date +%s%N)}; \
 			fi; \
 			sops decrypt "$${enc_tfvars_file}" > terraform.tfvars; \
