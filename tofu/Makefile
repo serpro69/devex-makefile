@@ -135,7 +135,7 @@ endif
 ifneq ($(filter help,$(MAKECMDGOALS)),)
   # Skip checks for help target
 else
-  ifeq ifeq (, $(shell which jq))
+  ifeq (, $(shell which jq))
     $(error "No jq in $(PATH), please install jq: https://github.com/jqlang/jq?tab=readme-ov-file#installation")
   else ifeq (, $(shell which tofu))
     $(error "No tofu in $(PATH), get it from https://opentofu.org/docs/intro/install")
