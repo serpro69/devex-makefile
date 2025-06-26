@@ -17,7 +17,7 @@ This is my [opentofu](https://opentofu.org/) workflow for every opentofu project
 
 ## Installation
 
-I usually add this project as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) and then simlink the Makefile to the tofu [root module](https://opentofu.org/docs/language/modules/#the-root-module) directory:
+I usually add this project as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) and then symlink the Makefile to the tofu [root module](https://opentofu.org/docs/language/modules/#the-root-module) directory:
 
 ```bash
 # add submodule to the project root dir
