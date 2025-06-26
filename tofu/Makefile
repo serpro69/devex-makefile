@@ -35,7 +35,7 @@ __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 ################################################################################################
 #                                             COMMANDS
 
-TF     = tofu
+TF = tofu
 
 ################################################################################################
 #                                             VARIABLES
@@ -66,10 +66,6 @@ __NO_VALIDATE   ?=
 
 ### Environment options
 
-__ENVIRONMENT        ?= $(shell cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix // ""' | cut -d '/' -f 3)
-__BUCKET_DIR         =  terraform/state
-__PROD_BUCKET_SUBDIR =  prod
-__TEST_BUCKET_SUBDIR =  test
 __TFVARS_PATH        =  vars/$(WORKSPACE).tfvars
 # backup terraform.tfvars before overwriting it with decrypted content
 __BACKUP_TFVARS      =  false
@@ -149,14 +145,10 @@ endif
 ################################################################################################
 #                                             FUNCTIONS
 
-# decrypt terraform.$(__ENVIRONMENT).tfvars file if it's encrypted
-# comment out the variables based on a workspace otherwise
 define tfvars
 	@enc_tfvars_file=''; \
 	if [ -f terraform.tfvars.sops ]; then \
 		enc_tfvars_file='terraform.tfvars.sops'; \
-	elif [ -f terraform.tfvars-$(__ENVIRONMENT).sops ]; then \
-		enc_tfvars_file='terraform.tfvars-$(__ENVIRONMENT).sops'; \
 	fi; \
 	if [ -n "$${enc_tfvars_file}" ]; then \
 		if ! command -v sops &> /dev/null; then \
@@ -257,7 +249,7 @@ define tf
 	`# run the command`; \
 	"$${final_cmd[@]}"; \
 	`# clean up temporary-decrypted tfvars`; \
-	if [ -f terraform.tfvars.sops ] || [ -f terraform.tfvars-$(__ENVIRONMENT).sops ]; then \
+	if [ -f terraform.tfvars.sops ]; then \
 		rm -f terraform.tfvars; \
 	fi
 endef
@@ -434,15 +426,10 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	cp vars/$${_INITIAL_WORKSPACE}.tfvars vars/$${_TEMP_WORKSPACE}.tfvars; \
 	if [ -f "inputs/${{_INITIAL_WORKSPACE}}" ]; then cp -r inputs/$${_INITIAL_WORKSPACE} inputs/$${_TEMP_WORKSPACE}; fi; \
 	`# init`; \
-	$(MAKE) init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
+	$(MAKE) init NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
 	`# check if we're running in a temp workspace`; \
 	_CURRENT_WORKSPACE=$$($(TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
 		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
-		exit 1; \
-	fi; \
-	`# check backend configuration`; \
-	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
-		printf "$(__BOLD)$(__RED)Tofu state is configured with NON-test backend!$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 	`# apply against origin baseline`; \
@@ -450,15 +437,10 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	`# switch back to initial branch`; \
 	git switch -; \
 	`# re-initialize tofu to pull latest modules, providers, etc from the changeset under test`; \
-	$(MAKE) init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
+	$(MAKE) init NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
 	`# check if we're running in a temp workspace`; \
 	_CURRENT_WORKSPACE=$$($(TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
 		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
-		exit 1; \
-	fi; \
-	`# check backend configuration`; \
-	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
-		printf "$(__BOLD)$(__RED)Tofu state is configured with NON-test backend!$(__RESET)\n"; \
 		exit 1; \
 	fi; \
 	`# apply to test the changeset`; \
