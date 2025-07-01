@@ -189,8 +189,16 @@ endef
 define tfstate_encrypt
 	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
 		printf "$(__BOLD)$(__GREEN)Encrypting tfstate files$(__RESET)\n"; \
-		[ -f "$(__TFSTATE_PATH)" ] && sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
-		[ -f "$(__TFSTATE_BACKUP_PATH)" ] && sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
+		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = false ]; then \
+			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
+		else \
+			printf "$(__DIM)$(__TFSTATE_PATH) already encrypted or does not exist\n$(__RESET)"
+		fi; \
+		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = false ]; then \
+			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
+		else \
+			printf "$(__DIM)$(__TFSTATE_BACKUP_PATH) already encrypted or does not exist\n$(__RESET)"
+		fi; \
 	else \
 		printf "$(__BOLD)$(__YELLOW)Skipping tfstate encryption$(__RESET)\n"; \
 	fi
@@ -199,8 +207,16 @@ endef
 define tfstate_decrypt
 	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
 		printf "$(__BOLD)$(__GREEN)Decrypting tfstate files$(__RESET)\n"; \
-		[ -f "$(__TFSTATE_PATH)" ] && sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
-		[ -f "$(__TFSTATE_BACKUP_PATH)" ] && sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
+		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = true ]; then \
+			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
+		else \
+			printf "$(__DIM)$(__TFSTATE_PATH) already decrypted or does not exist\n$(__RESET)"
+		fi; \
+		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = true ]; then \
+			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
+		else \
+			printf "$(__DIM)$(__TFSTATE_BACKUP_PATH) already decrypted or does not exist\n$(__RESET)"
+		fi; \
 	else \
 		printf "$(__BOLD)$(__YELLOW)Skipping tfstate decryption$(__RESET)\n"; \
 	fi
