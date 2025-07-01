@@ -298,7 +298,14 @@ define tf
 	if [ -f terraform.tfvars.sops ]; then \
 		rm -f terraform.tfvars; \
 	fi; \
-	$(call tfstate_encrypt,)
+	`# no need to re-encrypt on 'plan' since it does not change the state`; \
+	if [ "$($@_CMD)" = "plan" ]; then \
+		if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
+			git checkout terraform.tfstate.d; \
+		fi; \
+	else \
+		$(call tfstate_encrypt,); \
+	fi
 endef
 
 ################################################################################################
