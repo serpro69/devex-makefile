@@ -398,6 +398,10 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		printf "$(__BOLD)Initializing tflint...$(__RESET)\n"; \
 		tflint --init; \
 	fi; \
+	`# checkout state files to re-encrypt them`
+	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
+		git checkout terraform.tfstate.d; \
+	fi; \
 	`# done`; \
 	printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"; \
