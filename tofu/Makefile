@@ -423,7 +423,7 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 	fi; \
 	`# checkout state files to re-encrypt them`
 	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
-		git checkout terraform.tfstate.d; \
+		git checkout terraform.tfstate.d || true; \
 	fi; \
 	`# done`; \
 	printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"; \
