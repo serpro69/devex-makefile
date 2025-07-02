@@ -222,6 +222,12 @@ define tfstate_decrypt
 	fi
 endef
 
+define tfstate_checkout
+	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
+		git checkout terraform.tfstate.d || true; \
+	fi
+endef
+
 # Reusable "function" for 'apply', 'destroy' and 'plan' commands
 # Additional, space-separated arguments to the tofu command are provided via $(TF_ARGS) variable
 define tf
@@ -300,9 +306,7 @@ define tf
 	fi; \
 	`# no need to re-encrypt on 'plan' since it does not change the state`; \
 	if [ "$($@_CMD)" = "plan" ]; then \
-		if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
-			git checkout terraform.tfstate.d; \
-		fi; \
+		$(call tfstate_checkout,); \
 	else \
 		$(call tfstate_encrypt,); \
 	fi
@@ -421,10 +425,8 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		printf "$(__BOLD)Initializing tflint...$(__RESET)\n"; \
 		tflint --init; \
 	fi; \
-	`# checkout state files to re-encrypt them`
-	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
-		git checkout terraform.tfstate.d || true; \
-	fi; \
+	`# checkout state files to re-encrypt them`; \
+	$(call tfstate_checkout,); \
 	`# done`; \
 	printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"; \
@@ -522,7 +524,9 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 		$(TF) workspace select "$${_INITIAL_WORKSPACE}"; \
 		$(TF) workspace delete --force "$${_TEMP_WORKSPACE}"; \
-	fi
+	fi; \
+	`# checkout state files to re-encrypt them`; \
+	$(call tfstate_checkout,)
 
 plan: SHELL:=/bin/bash
 plan: _check-ws ## Chart the course before you sail! 🗺️
@@ -530,11 +534,14 @@ plan: _check-ws ## Chart the course before you sail! 🗺️
 	$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
 
 plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? 💣
-	@$(TF) plan \
+	@$(call tfstate_decrypt,); \
+	$(TF) plan \
 		-input=false \
 		-refresh=true \
 		-destroy \
-		-var-file="$(__TFVARS_PATH)"
+		-var-file="$(__TFVARS_PATH)"; \
+	`# checkout state files to re-encrypt them`; \
+	$(call tfstate_checkout,)
 
 apply: SHELL:=/bin/bash
 apply: validate _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
@@ -561,7 +568,7 @@ clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
 
 import: SHELL:=/bin/bash
 import: _check-ws ## Import state 📦
-	@`# hide target content`; \
+	@$(call tfstate_decrypt,); \
 	printf "$(__BOLD)Importing resource state...$(__RESET)\n\n"; \
 	if [ -z '$(TF_IMPORT_ADDR)' ] || [ -z '$(TF_IMPORT_ID)' ]; then \
 		printf "$(__BOLD)$(__RED)TF_IMPORT_ADDR and TF_IMPORT_ID must be set$(__RESET)\n\n"; \
@@ -571,3 +578,4 @@ import: _check-ws ## Import state 📦
 	fi; \
 	$(TF) import -var-file=$(__TFVARS_PATH) '$(TF_IMPORT_ADDR)' '$(TF_IMPORT_ID)'; \
 	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"; \
+	@$(call tfstate_encrypt,)

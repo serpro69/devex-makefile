@@ -632,4 +632,4 @@ import: _check-ws ## Import state 📦
 		exit 1; \
 	fi; \
 	$(TF) import -var-file=$(__TFVARS_PATH) '$(TF_IMPORT_ADDR)' '$(TF_IMPORT_ID)'; \
-	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"; \
+	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"
