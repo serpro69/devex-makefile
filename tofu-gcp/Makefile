@@ -587,13 +587,9 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	git pull origin $(__GIT_DEFAULT_BRANCH) && git checkout origin/$(__GIT_DEFAULT_BRANCH); \
 	`# ensure vars and inputs are available for testing`; \
 	_initial_vars_file_path="vars/$${_INITIAL_WORKSPACE}.tfvars"; \
-	if [ -f "$${_initial_vars_file_path}" ]; then \
-		cp "$${_initial_vars_file_path}" "vars/$${_TEMP_WORKSPACE}.tfvars"; \
-	fi; \
-	if [ -f "$${_initial_vars_file_path}.sops" ]; then \
-		cp "$${_initial_vars_file_path}.sops" "vars/$${_TEMP_WORKSPACE}.tfvars.sops"; \
-	fi; \
-	if [ -f "inputs/${_INITIAL_WORKSPACE}" ]; then cp -r inputs/$${_INITIAL_WORKSPACE} inputs/$${_TEMP_WORKSPACE}; fi; \
+	[ -f "$${_initial_vars_file_path}" ] && cp "$${_initial_vars_file_path}" "vars/$${_TEMP_WORKSPACE}.tfvars"; \
+	[ -f "$${_initial_vars_file_path}.sops" ] && cp "$${_initial_vars_file_path}.sops" "vars/$${_TEMP_WORKSPACE}.tfvars.sops"; \
+	[ -f "inputs/${_INITIAL_WORKSPACE}" ] && cp -r "inputs/$${_INITIAL_WORKSPACE}" "inputs/$${_TEMP_WORKSPACE}"; fi; \
 	`# init`; \
 	$(MAKE) init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
 	`# check if we're running in a temp workspace`; \
