@@ -56,7 +56,7 @@ TF_PLAN          ?=
 # Resource address for 'state' and 'import' targets
 TF_RES_ADDR      ?=
 # Import resource ID
-TF_IMPORT_ID     ?=
+TF_RES_ID        ?=
 TF_ENCRYPT_STATE ?= true
 
 ### Google Cloud Platform
@@ -262,8 +262,8 @@ define tf
 					final_cmd+=("$(TF_PLAN)"); \
 				fi; \
 			elif [ "$($@_CMD)" = "import" ]; then \
-				if [ -z '$(TF_IMPORT_ADDR)' ] || [ -z '$(TF_IMPORT_ID)' ]; then \
-					printf "$(__BOLD)$(__RED)TF_IMPORT_ADDR and TF_IMPORT_ID must be set$(__RESET)\n\n"; \
+				if [ -z '$(TF_IMPORT_ADDR)' ] || [ -z '$(TF_RES_ID)' ]; then \
+					printf "$(__BOLD)$(__RED)TF_IMPORT_ADDR and TF_RES_ID must be set$(__RESET)\n\n"; \
 					"$(TF)" import --help; \
 					printf "\n"; \
 					exit 1; \
@@ -272,7 +272,7 @@ define tf
 					final_cmd+=("-var-file=$($@_VAR_FILE)"); \
 				fi; \
 				final_cmd+=("$(TF_IMPORT_ADDR)"); \
-				final_cmd+=("$(TF_IMPORT_ID)"); \
+				final_cmd+=("$(TF_RES_ID)"); \
 			else \
 				if [ -f "$($@_VAR_FILE)" ]; then \
 					final_cmd+=("-var-file=$($@_VAR_FILE)"); \
@@ -356,8 +356,8 @@ help: ## Save our souls! 🛟
 	printf "                               $(__SITM)(before fully converging the entire configuration)$(__RESET)\n"; \
 	printf "$(__MAGENTA)<TF_PLAN>                      $(__YELLOW)$(__RESET) Tofu plan file path\n"; \
 	printf "                               $(__SITM)(used with 'plan', 'apply' and 'destroy' targets)$(__RESET)\n"; \
-	printf "$(__MAGENTA)<TF_IMPORT_ADDR>               $(__YELLOW)$(__RESET) Resource ADDR for tofu import command\n"; \
-	printf "$(__MAGENTA)<TF_IMPORT_ID>                 $(__YELLOW)$(__RESET) Resource ID for tofu import command\n"; \
+	printf "$(__MAGENTA)<TF_RES_ADDR>                  $(__YELLOW)$(__RESET) Resource ADDR for tofu state/import commands\n"; \
+	printf "$(__MAGENTA)<TF_RES_ID>                    $(__YELLOW)$(__RESET) Resource ID for tofu import command\n"; \
 	printf "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts\n"; \
 	printf "                               $(__SITM)(NB! This does not disable prompts coming from tofu)$(__RESET)\n"; \
 	printf "\n"; \
