@@ -23,7 +23,8 @@
 .ONESHELL:
 .SHELL := $(shell which bash)
 .SHELLFLAGS := -ec
-.PHONY: apply clean destroy format help init plan plan-destroy test validate
+__SHELL_OPTS = set -o pipefail;
+.PHONY: apply clean destroy format help init plan show state test validate import
 # https://stackoverflow.com/a/63771055
 __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 # Use below for reference on how to use variables in a Makefile:
@@ -52,9 +53,11 @@ TF_ARGS          ?=
 TF_CONVERGE_FROM ?=
 # Plan file path (used with plan, apply, and destroy targets)
 TF_PLAN          ?=
-# Import resource address and ID
-TF_IMPORT_ADDR   ?=
+# Resource address for 'state' and 'import' targets
+TF_RES_ADDR      ?=
+# Import resource ID
 TF_IMPORT_ID     ?=
+TF_ENCRYPT_STATE ?= true
 
 ### Google Cloud Platform
 
@@ -166,8 +169,8 @@ define tfvars
 	@enc_tfvars_file=''; \
 	if [ -f terraform.tfvars.sops ]; then \
 		enc_tfvars_file='terraform.tfvars.sops'; \
-	elif [ -f terraform.tfvars-$(__ENVIRONMENT).sops ]; then \
-		enc_tfvars_file='terraform.tfvars-$(__ENVIRONMENT).sops'; \
+	elif [ -f "terraform.tfvars-$(__ENVIRONMENT).sops" ]; then \
+		enc_tfvars_file="terraform.tfvars-$(__ENVIRONMENT).sops"; \
 	fi; \
 	if [ -n "$${enc_tfvars_file}" ]; then \
 		if ! command -v sops &> /dev/null; then \
@@ -177,6 +180,7 @@ define tfvars
 				cp terraform.tfvars{,.bak.$$(date +%s%N)}; \
 			fi; \
 			sops decrypt "$${enc_tfvars_file}" > terraform.tfvars; \
+			printf "" >> terraform.tfvars; \
 		fi; \
 	fi; \
 	search_string="$(WORKSPACE)"; \
@@ -193,6 +197,7 @@ define tfvars
 			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
 		else \
 			sops decrypt "$${enc_ws_tfvars_file}" >> terraform.tfvars; \
+			printf "" >> terraform.tfvars; \
 		fi; \
 	fi
 endef
@@ -204,73 +209,105 @@ define tf
 	$(eval $@_VAR_FILE = $(2))
 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
 
-	@cmd=("$(TF)" "$($@_CMD)" "-lock=true" "-input=false" "-refresh=true"); \
-	if [ ! "$($@_ARGS)" = "" ]; then \
-		cmd+=("$($@_ARGS)"); \
+	@if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then \
+		read -s -p "Enter tofu encryption passphrase: " _passphrase; \
+		printf "\n"; \
+		_config=$$(printf 'key_provider "pbkdf2" "main" {\n  passphrase = "%s"\n  key_length = 32\n  salt_length = 32\n  iterations = 600000\n}' "$${_passphrase}"); \
+		export TF_ENCRYPTION="$${_config}"; \
 	fi; \
-	`# first handle tf_converge_from option`; \
-	if [ ! "$(TF_CONVERGE_FROM)" = "" ]; then \
-		_tmp_cmd=("$${cmd[@]}"); \
-		`# NB! need to append var-file option here instead of top-level cmd variable`; \
-		`#     because we need to support applying from pre-made plan files which don't take this option`; \
-		if [ -f "$($@_VAR_FILE)" ]; then \
-			_tmp_cmd+=("-var-file=$($@_VAR_FILE)"); \
-		fi; \
-		_tmp_cmd+=("-target=$(TF_CONVERGE_FROM)"); \
-		`# always apply the target resource, even when running plan`; \
-		if [ "$($@_CMD)" = "plan" ]; then \
-			if [ "$(__DEBUG)" == "true" ]; then \
-				printf "$(__MAGENTA)Tofu converge plan: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
+	case "$($@_CMD)" in \
+		apply|destroy|import|plan) \
+			cmd=("$(TF)" "$($@_CMD)" "-lock=true" "-input=false"); \
+			if [ "$($@_CMD)" != "import" ]; then \
+				cmd+=("-refresh=true"); \
 			fi; \
-			`# first run the plan`; \
-			"$${_tmp_cmd[@]}"; \
-			`# then update the tofu command`; \
-			for i in "$${!_tmp_cmd[@]}"; do \
-				if [ "$${_tmp_cmd[$$i]}" = "plan" ]; then \
-					_tmp_cmd[$$i]="apply"; \
+			if [ ! "$($@_ARGS)" = "" ]; then \
+				cmd+=("$($@_ARGS)"); \
+			fi; \
+			if [ ! "$(TF_CONVERGE_FROM)" = "" ]; then \
+				_tmp_cmd=("$${cmd[@]}"); \
+				if [ -f "$($@_VAR_FILE)" ]; then \
+					_tmp_cmd+=("-var-file=$($@_VAR_FILE)"); \
 				fi; \
-			done; \
-			`# and apply the changes`; \
+				_tmp_cmd+=("-target=$(TF_CONVERGE_FROM)"); \
+				if [ "$($@_CMD)" = "plan" ]; then \
+					if [ "$(__DEBUG)" == "true" ]; then \
+						printf "$(__MAGENTA)Tofu converge plan: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
+					fi; \
+					"$${_tmp_cmd[@]}"; \
+					for i in "$${!_tmp_cmd[@]}"; do \
+						if [ "$${_tmp_cmd[$$i]}" = "plan" ]; then \
+							_tmp_cmd[$$i]="apply"; \
+						fi; \
+					done; \
+					if [ "$(__DEBUG)" == "true" ]; then \
+						printf "$(__MAGENTA)Tofu converge apply: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
+					fi; \
+					"$${_tmp_cmd[@]}"; \
+				else \
+					if [ "$(__DEBUG)" == "true" ]; then \
+						printf "$(__MAGENTA)Tofu converge $($@_CMD): $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
+					fi; \
+					"$${_tmp_cmd[@]}"; \
+				fi; \
+			fi; \
+			final_cmd=("$${cmd[@]}"); \
+			if [ ! "$(TF_PLAN)" = "" ]; then \
+				if [ "$($@_CMD)" = "plan" ]; then \
+					if [ -f "$($@_VAR_FILE)" ]; then \
+						final_cmd+=("-var-file=$($@_VAR_FILE)"); \
+					fi; \
+					final_cmd+=("-out=$(TF_PLAN)"); \
+				else \
+					final_cmd+=("$(TF_PLAN)"); \
+				fi; \
+			elif [ "$($@_CMD)" = "import" ]; then \
+				if [ -z '$(TF_IMPORT_ADDR)' ] || [ -z '$(TF_IMPORT_ID)' ]; then \
+					printf "$(__BOLD)$(__RED)TF_IMPORT_ADDR and TF_IMPORT_ID must be set$(__RESET)\n\n"; \
+					"$(TF)" import --help; \
+					printf "\n"; \
+					exit 1; \
+				fi; \
+				if [ -f "$($@_VAR_FILE)" ]; then \
+					final_cmd+=("-var-file=$($@_VAR_FILE)"); \
+				fi; \
+				final_cmd+=("$(TF_IMPORT_ADDR)"); \
+				final_cmd+=("$(TF_IMPORT_ID)"); \
+			else \
+				if [ -f "$($@_VAR_FILE)" ]; then \
+					final_cmd+=("-var-file=$($@_VAR_FILE)"); \
+				fi; \
+			fi; \
 			if [ "$(__DEBUG)" == "true" ]; then \
-				printf "$(__MAGENTA)Tofu converge apply: $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
+				printf "\n$(__MAGENTA)Encryption config $($@_CMD):\n$(__BOLD)$(__SITM)%s$(__RESET)\n" "$${TF_ENCRYPTION}"; \
+				printf "\n$(__MAGENTA)Tofu $($@_CMD): $(__BOLD)$(__SITM)%s$(__RESET)\n" "$${cmd[*]}"; \
+				exit 0; \
 			fi; \
-			"$${_tmp_cmd[@]}"; \
-		else \
+			"$${final_cmd[@]}"; \
+			if [ -f terraform.tfvars.sops ] || [ -f terraform.tfvars-$(__ENVIRONMENT).sops ]; then \
+				rm -f terraform.tfvars; \
+			fi; \
+			;; \
+		show|state) \
+			cmd=("$(TF)" "$($@_CMD)"); \
+			if [ ! "$($@_ARGS)" = "" ]; then \
+				cmd+=("$($@_ARGS)"); \
+			fi; \
+			if [ "$($@_CMD)" = "state" ]; then \
+				if [ ! "$(TF_RES_ADDR)" = "" ]; then
+					cmd+=('show' '$(TF_RES_ADDR)'); \
+				elif [ -z "$($@_ARGS)" ]; then \
+					cmd+=('list'); \
+				fi; \
+			fi; \
 			if [ "$(__DEBUG)" == "true" ]; then \
-				printf "$(__MAGENTA)Tofu converge $($@_CMD): $(__BOLD)$(__SITM)$${_tmp_cmd[@]}$(__RESET)\n"; \
+				printf "\n$(__MAGENTA)Encryption config $($@_CMD):\n$(__BOLD)$(__SITM)%s$(__RESET)\n" "$${TF_ENCRYPTION}"; \
+				printf "\n$(__MAGENTA)Tofu $($@_CMD): $(__BOLD)$(__SITM)%s$(__RESET)\n" "$${cmd[*]}"; \
+				exit 0; \
 			fi; \
-			"$${_tmp_cmd[@]}"; \
-		fi; \
-	fi; \
-	`# now we run the final plan/apply/destroy command`; \
-	final_cmd=("$${cmd[@]}"); \
-	`# handle the tf_plan option since it's used differently for plan and apply/destroy`; \
-	if [ ! "$(TF_PLAN)" = "" ]; then \
-		`# produce the plan file`; \
-		if [ "$($@_CMD)" = "plan" ]; then \
-			`# include vars if they exist`; \
-			if [ -f "$($@_VAR_FILE)" ]; then \
-				final_cmd+=("-var-file=$($@_VAR_FILE)"); \
-			fi; \
-			final_cmd+=("-out=$(TF_PLAN)"); \
-		else \
-			`# NB! when running apply/destroy we don't need to provide vars because they're embedded into the plan binary file`; \
-			final_cmd+=("$(TF_PLAN)"); \
-		fi; \
-	else \
-		if [ -f "$($@_VAR_FILE)" ]; then \
-			final_cmd+=("-var-file=$($@_VAR_FILE)"); \
-		fi; \
-	fi; \
-	if [ "$(__DEBUG)" == "true" ]; then \
-		printf "$(__MAGENTA)Tofu $($@_CMD): $(__BOLD)$(__SITM)$${final_cmd[@]}$(__RESET)\n"; \
-	fi; \
-	`# run the command`; \
-	"$${final_cmd[@]}"; \
-	`# clean up temporary-decrypted tfvars`; \
-	if [ -f terraform.tfvars.sops ] || [ -f terraform.tfvars-$(__ENVIRONMENT).sops ]; then \
-		rm -f terraform.tfvars; \
-	fi
+			"$${cmd[@]}"; \
+			;; \
+	esac
 endef
 
 ################################################################################################
@@ -370,10 +407,8 @@ _check-ws: _set-env
 _update-tfvars:
 	$(call tfvars,)
 
-init: SHELL:=$(shell which bash)
-init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
-	@printf "$(__BOLD)Initializing tofu...$(__RESET)\n"; \
-	printf "$(__BOLD)Checking active GCP configuration...$(__RESET)\n"; \
+_init-gcp-config:
+	@printf "$(__BOLD)Checking active GCP configuration...$(__RESET)\n"; \
 	_CURRENT_CONFIG=$$($(GCLOUD) config configurations list --filter='is_active=true' --format='value(name)'); \
 	if [ "$${_CURRENT_CONFIG}" != "$(GCP_DEFAULT_CONFIGURATION)" ]; then \
 		read -p "$(__BOLD)$(__MAGENTA)Current configuration ($${_CURRENT_CONFIG}) does not match default config ($(GCP_DEFAULT_CONFIGURATION)). Do you want to proceed? [y/Y]: $(__RESET)" ANSWER && \
@@ -383,8 +418,10 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 				$(GCLOUD) config configurations activate $(GCP_DEFAULT_CONFIGURATION); \
 			fi; \
 		fi; \
-	fi; \
-	printf "$(__BOLD)Checking GCP project...$(__RESET)\n"; \
+	fi
+
+_init-gcp-project:
+	@printf "$(__BOLD)Checking GCP project...$(__RESET)\n"; \
 	_DEFAULT_PROJECT=$$($(GCLOUD) config configurations list --filter='is_active=true' --format='value(properties.core.project)'); \
 	_CURRENT_PROJECT=$$($(GCLOUD) config get project 2>/dev/null | tr -d '[:space:]'); \
 	if [ "$(GCP_PROJECT)" != "(unset)" ] && [ ! -z "$(GCP_PROJECT)" ] && [ "$(GCP_PROJECT)" != "$${_DEFAULT_PROJECT}" ]; then \
@@ -412,8 +449,10 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 			$(GCLOUD) auth login --update-adc ; \
 		fi; \
 		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
-	fi; \
-	`# Check ADC`; \
+	fi
+
+_init-adc:
+	@`# Check ADC`; \
 	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
 	if [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
@@ -422,8 +461,10 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 			$(GCLOUD) auth application-default set-quota-project $(QUOTA_PROJECT) ; \
 			printf "$(__BOLD)$(__CYAN)Quota-project is set to ($(QUOTA_PROJECT))$(__RESET)\n"; \
 		fi; \
-	fi; \
-	`# Configure GCS backend`; \
+	fi
+
+_init-gcs-backend:
+	@`# Configure GCS backend`; \
 	printf "$(__BOLD)Configuring the tofu backend...$(__RESET)\n"; \
 	_BUCKET_NAME=$$($(GCLOUD) storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
 	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
@@ -463,8 +504,10 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		-upgrade \
 		-backend=true \
 		-backend-config="bucket=$${_BUCKET_NAME}" \
-		-backend-config="prefix=$${_BUCKET_PATH}"; \
-	`# check/switch workspace`; \
+		-backend-config="prefix=$${_BUCKET_PATH}"
+
+_init-tofu-ws:
+	@`# check/switch workspace`; \
 	printf "$(__BOLD)Checking tofu workspace...$(__RESET)\n"; \
 	_CURRENT_WORKSPACE=$$($(TF) workspace show | tr -d '[:space:]'); \
 	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
@@ -472,14 +515,18 @@ init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
 		$(TF) workspace select -or-create $(WORKSPACE); \
 	else \
 		printf "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_WORKSPACE})$(__RESET)\n"; \
-	fi; \
-	`# Initialize tflint`; \
+	fi
+
+_init-tflint:
+	@`# Initialize tflint`; \
 	if [ -f ".tflint.hcl" ]; then \
 		printf "$(__BOLD)Initializing tflint...$(__RESET)\n"; \
 		tflint --init; \
-	fi; \
-	`# done`; \
-	printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"; \
+	fi
+
+init: SHELL:=$(shell which bash)
+init: _check-ws _init-gcp-config _init-gcp-project _init-adc _init-gcs-backend _init-tofu-ws _init-tflint ## Hoist the sails and prepare for the voyage! 🌬️💨
+	@printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what tofu thinks it will do when applying changes,$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"
@@ -501,8 +548,12 @@ validate: ## Inspect the rigging and report any issues! 🔍
 		printf "$(__BOLD)Validate tofu configuration...$(__RESET)\n"; \
 		$(TF) validate || exit 42; \
 		printf "$(__BOLD)Lint terraform files...$(__RESET)\n"; \
-		if [ -f $(__TFVARS_PATH) ]; then \
-			tflint --var-file "$(__TFVARS_PATH)" || exit 42; \
+		_tf_vars_file="$(__TFVARS_PATH)"; \
+		if [ ! -f "$${_tf_vars_file}" ] && [ -f terraform.tfvars.sops ]; then \
+			_tf_vars_file=terraform.tfvars; \
+		fi; \
+		if [ -f "$${_tf_vars_file}" ]; then \
+			tflint --var-file "$${_tf_vars_file}" || exit 42; \
 		else \
 			tflint || exit 42; \
 		fi; \
@@ -510,8 +561,8 @@ validate: ## Inspect the rigging and report any issues! 🔍
 		`# TIP: suppress issues via inline comments:`; \
 		`# https://aquasecurity.github.io/trivy/v0.46/docs/configuration/filtering/#by-inline-comments`; \
 		printf "$(__BOLD)\nScan for vulnerabilities...$(__RESET)\n"; \
-		if [ -f $(__TFVARS_PATH) ]; then \
-			trivy conf --skip-dirs "**/.terraform" --exit-code 42 --tf-vars "$(__TFVARS_PATH)" .; \
+		if [ -f "$${_tf_vars_file}" ]; then \
+			trivy conf --skip-dirs "**/.terraform" --exit-code 42 --tf-vars "$${_tf_vars_file}" .; \
 		else \
 			trivy conf --skip-dirs "**/.terraform" --exit-code 42 .; \
 		fi; \
@@ -535,8 +586,14 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 	`# use latest changes in default, upstream branch as baseline`; \
 	git pull origin $(__GIT_DEFAULT_BRANCH) && git checkout origin/$(__GIT_DEFAULT_BRANCH); \
 	`# ensure vars and inputs are available for testing`; \
-	cp vars/$${_INITIAL_WORKSPACE}.tfvars vars/$${_TEMP_WORKSPACE}.tfvars; \
-	if [ -f "inputs/${{_INITIAL_WORKSPACE}}" ]; then cp -r inputs/$${_INITIAL_WORKSPACE} inputs/$${_TEMP_WORKSPACE}; fi; \
+	_initial_vars_file_path="vars/$${_INITIAL_WORKSPACE}.tfvars"; \
+	if [ -f "$${_initial_vars_file_path}" ]; then \
+		cp "$${_initial_vars_file_path}" "vars/$${_TEMP_WORKSPACE}.tfvars"; \
+	fi; \
+	if [ -f "$${_initial_vars_file_path}.sops" ]; then \
+		cp "$${_initial_vars_file_path}.sops" "vars/$${_TEMP_WORKSPACE}.tfvars.sops"; \
+	fi; \
+	if [ -f "inputs/${_INITIAL_WORKSPACE}" ]; then cp -r inputs/$${_INITIAL_WORKSPACE} inputs/$${_TEMP_WORKSPACE}; fi; \
 	`# init`; \
 	$(MAKE) init __ENVIRONMENT="test" NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
 	`# check if we're running in a temp workspace`; \
@@ -591,13 +648,6 @@ plan: _check-ws ## Chart the course before you sail! 🗺️
 	@`# hide target content`
 	$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
 
-plan-destroy: _check-ws ## What would happen if we blow it all to smithereens? 💣
-	@$(TF) plan \
-		-input=false \
-		-refresh=true \
-		-destroy \
-		-var-file="$(__TFVARS_PATH)"
-
 apply: SHELL:=/bin/bash
 apply: validate _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
 	@`# hide target content`; \
@@ -607,6 +657,16 @@ destroy: SHELL:=/bin/bash
 destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
 	@`# hide target content`; \
 	$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
+
+show: SHELL:=/bin/bash
+show: _check-ws ## Show the current state of the world! 🌍
+	@`# hide target content`
+	$(call tf,show,$(__TFVARS_PATH),$(TF_ARGS))
+
+state: SHELL:=/bin/bash
+state: _check-ws ## Make the world dance to your tunes! 🎻
+	@`# hide target content`
+	$(call tf,state,$(__TFVARS_PATH),$(TF_ARGS))
 
 clean: SHELL:=/bin/bash
 clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
@@ -625,11 +685,5 @@ import: SHELL:=/bin/bash
 import: _check-ws ## Import state 📦
 	@`# hide target content`; \
 	printf "$(__BOLD)Importing resource state...$(__RESET)\n\n"; \
-	if [ -z '$(TF_IMPORT_ADDR)' ] || [ -z '$(TF_IMPORT_ID)' ]; then \
-		printf "$(__BOLD)$(__RED)TF_IMPORT_ADDR and TF_IMPORT_ID must be set$(__RESET)\n\n"; \
-		$(TF) import --help; \
-		printf "\n"; \
-		exit 1; \
-	fi; \
-	$(TF) import -var-file=$(__TFVARS_PATH) '$(TF_IMPORT_ADDR)' '$(TF_IMPORT_ID)'; \
+	$(call tf,import,$(__TFVARS_PATH),$(TF_ARGS)); \
 	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"
