@@ -57,7 +57,7 @@ TF_PLAN                  ?=
 TF_RES_ADDR              ?=
 # Import resource ID
 TF_RES_ID                ?=
-TF_ENCRYPT_STATE         ?= true
+TF_ENCRYPT_STATE         ?= false
 # encryption passphrase for the state file
 TF_ENCRYPTION_PASSPHRASE ?=
 
@@ -213,7 +213,6 @@ define tf
 
 	@if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then \
 		_passphrase=$$(echo "$(TF_ENCRYPTION_PASSPHRASE)" | xargs); \
-		echo "$${_passphrase}"; \
 		if [ -z "$(TF_ENCRYPTION_PASSPHRASE)" ]; then \
 			read -s -p "Enter encryption passphrase: " _passphrase; \
 			printf "\n"; \
