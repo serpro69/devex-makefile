@@ -44,20 +44,22 @@ GCLOUD = gcloud
 
 ### Tofu
 
-WORKSPACE        ?= $(shell tofu workspace show | tr -d '[:space:]')
+WORKSPACE                ?= $(shell tofu workspace show | tr -d '[:space:]')
 # Additional, space-separated, tofu command options
-TF_ARGS          ?=
+TF_ARGS                  ?=
 # Set a resource path to apply first, before fully converging the entire configuration
 # This is a shortcut to avoid calling make apply twice, i.e. 'make apply TF_ARGS='-target="some_resource.name"' && make apply'
 # NB! this will apply the changes to the `some_resource.name` even when used with 'plan' target.
-TF_CONVERGE_FROM ?=
+TF_CONVERGE_FROM         ?=
 # Plan file path (used with plan, apply, and destroy targets)
-TF_PLAN          ?=
+TF_PLAN                  ?=
 # Resource address for 'state' and 'import' targets
-TF_RES_ADDR      ?=
+TF_RES_ADDR              ?=
 # Import resource ID
-TF_RES_ID        ?=
-TF_ENCRYPT_STATE ?= true
+TF_RES_ID                ?=
+TF_ENCRYPT_STATE         ?= true
+# encryption passphrase for the state file
+TF_ENCRYPTION_PASSPHRASE ?=
 
 ### Google Cloud Platform
 
@@ -210,8 +212,12 @@ define tf
 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
 
 	@if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then \
-		read -s -p "Enter tofu encryption passphrase: " _passphrase; \
-		printf "\n"; \
+		_passphrase=$$(echo "$(TF_ENCRYPTION_PASSPHRASE)" | xargs); \
+		echo "$${_passphrase}"; \
+		if [ -z "$(TF_ENCRYPTION_PASSPHRASE)" ]; then \
+			read -s -p "Enter encryption passphrase: " _passphrase; \
+			printf "\n"; \
+		fi; \
 		_config=$$(printf 'key_provider "pbkdf2" "main" {\n  passphrase = "%s"\n  key_length = 32\n  salt_length = 32\n  iterations = 600000\n}' "$${_passphrase}"); \
 		export TF_ENCRYPTION="$${_config}"; \
 	fi; \
@@ -288,7 +294,7 @@ define tf
 				rm -f terraform.tfvars; \
 			fi; \
 			;; \
-		show|state) \
+		show|state|output) \
 			cmd=("$(TF)" "$($@_CMD)"); \
 			if [ ! "$($@_ARGS)" = "" ]; then \
 				cmd+=("$($@_ARGS)"); \
@@ -298,6 +304,13 @@ define tf
 					cmd+=('show' '$(TF_RES_ADDR)'); \
 				elif [ -z "$($@_ARGS)" ]; then \
 					cmd+=('list'); \
+				fi; \
+			fi; \
+			if [ "$($@_CMD)" = "show" ]; then \
+				if [ ! "$(TF_PLAN)" = "" ]; then \
+					cmd+=('-plan' '$(TF_PLAN)'); \
+				else \
+					cmd+=('-state'); \
 				fi; \
 			fi; \
 			if [ "$(__DEBUG)" == "true" ]; then \
@@ -355,7 +368,7 @@ help: ## Save our souls! 🛟
 	printf "$(__MAGENTA)<TF_CONVERGE_FROM>             $(__YELLOW)$(__RESET) Resource path to apply first\n"; \
 	printf "                               $(__SITM)(before fully converging the entire configuration)$(__RESET)\n"; \
 	printf "$(__MAGENTA)<TF_PLAN>                      $(__YELLOW)$(__RESET) Tofu plan file path\n"; \
-	printf "                               $(__SITM)(used with 'plan', 'apply' and 'destroy' targets)$(__RESET)\n"; \
+	printf "                               $(__SITM)(used with 'plan', 'apply', 'destroy' and 'show' targets)$(__RESET)\n"; \
 	printf "$(__MAGENTA)<TF_RES_ADDR>                  $(__YELLOW)$(__RESET) Resource ADDR for tofu state/import commands\n"; \
 	printf "$(__MAGENTA)<TF_RES_ID>                    $(__YELLOW)$(__RESET) Resource ID for tofu import command\n"; \
 	printf "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts\n"; \
@@ -494,6 +507,19 @@ _init-gcs-backend:
 	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
 		printf "$(__BOLD)Temporarily switching to 'default' workspace$(__RESET)\n"; \
 		$(TF) workspace select default; \
+	fi; \
+	if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then \
+		_passphrase=$$(echo "$(TF_ENCRYPTION_PASSPHRASE)" | xargs); \
+		if [ -z "$(TF_ENCRYPTION_PASSPHRASE)" ]; then \
+			if [ "$(NON_INTERACTIVE)" = "true" ]; then \
+				printf "$(__BOLD)$(__RED)TF_ENCRYPTION_PASSPHRASE variable is not set$(__RESET)\n"; \
+				exit 9; \
+			fi; \
+			read -s -p "Enter encryption passphrase: " _passphrase; \
+			printf "\n"; \
+		fi; \
+		_config=$$(printf 'key_provider "pbkdf2" "main" {\n  passphrase = "%s"\n  key_length = 32\n  salt_length = 32\n  iterations = 600000\n}' "$${_passphrase}"); \
+		export TF_ENCRYPTION="$${_config}"; \
 	fi; \
 	`# initialize tofu`; \
 	$(TF) init \
@@ -663,6 +689,11 @@ state: SHELL:=/bin/bash
 state: _check-ws ## Make the world dance to your tunes! 🎻
 	@`# hide target content`
 	$(call tf,state,$(__TFVARS_PATH),$(TF_ARGS))
+
+output: SHELL:=/bin/bash
+output: _check-ws ## Explore the outcomes of the trip! 💰
+	@`# hide target content`
+	$(call tf,output,$(__TFVARS_PATH),$(TF_ARGS))
 
 clean: SHELL:=/bin/bash
 clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
