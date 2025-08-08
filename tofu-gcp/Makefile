@@ -23,7 +23,6 @@
 .ONESHELL:
 .SHELL := $(shell which bash)
 .SHELLFLAGS := -ec
-__SHELL_OPTS = set -o pipefail;
 .PHONY: apply clean destroy format help init plan show state test validate import
 # https://stackoverflow.com/a/63771055
 __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
@@ -300,16 +299,15 @@ define tf
 			fi; \
 			if [ "$($@_CMD)" = "state" ]; then \
 				if [ ! "$(TF_RES_ADDR)" = "" ]; then
-					cmd+=('show' '$(TF_RES_ADDR)'); \
+					cmd+=("show" "$(TF_RES_ADDR)"); \
 				elif [ -z "$($@_ARGS)" ]; then \
-					cmd+=('list'); \
+					cmd+=("list"); \
 				fi; \
-			fi; \
-			if [ "$($@_CMD)" = "show" ]; then \
+			elif [ "$($@_CMD)" = "show" ]; then \
 				if [ ! "$(TF_PLAN)" = "" ]; then \
-					cmd+=('-plan' '$(TF_PLAN)'); \
+					cmd+=("-plan" "$(TF_PLAN)"); \
 				else \
-					cmd+=('-state'); \
+					cmd+=("-state"); \
 				fi; \
 			fi; \
 			if [ "$(__DEBUG)" == "true" ]; then \
@@ -666,33 +664,27 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 
 plan: SHELL:=/bin/bash
 plan: _check-ws ## Chart the course before you sail! 🗺️
-	@`# hide target content`
-	$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
 
 apply: SHELL:=/bin/bash
 apply: validate _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
-	@`# hide target content`; \
-	$(call tf,apply,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,apply,$(__TFVARS_PATH),$(TF_ARGS))
 
 destroy: SHELL:=/bin/bash
 destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
-	@`# hide target content`; \
-	$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
 
 show: SHELL:=/bin/bash
 show: _check-ws ## Show the current state of the world! 🌍
-	@`# hide target content`
-	$(call tf,show,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,show,$(__TFVARS_PATH),$(TF_ARGS))
 
 state: SHELL:=/bin/bash
 state: _check-ws ## Make the world dance to your tunes! 🎻
-	@`# hide target content`
-	$(call tf,state,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,state,$(__TFVARS_PATH),$(TF_ARGS))
 
 output: SHELL:=/bin/bash
 output: _check-ws ## Explore the outcomes of the trip! 💰
-	@`# hide target content`
-	$(call tf,output,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,output,$(__TFVARS_PATH),$(TF_ARGS))
 
 clean: SHELL:=/bin/bash
 clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
