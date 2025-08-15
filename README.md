@@ -27,7 +27,7 @@ Also, because... why not? 🤓
 
 ## Installation
 
-I usually add this project as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules), and then create a symlink to the necessary makefile, for example:
+The easiest way I found to use this project is through cloning it as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules), and then creating a symlink to the necessary makefile, for example:
 
 ```bash
 # add submodule 
@@ -50,15 +50,16 @@ Each directory should usually contain a readme with usage details for a given ma
 
 ### Infrastructure as Code
 
-- [`pulumi-gcp`](./pulumi-gcp) - recipes for working with Pulumi and Google Cloud Platform
-- [`terraform-gcp`](./terraform-gcp) - recipes for working with Terraform and Google Cloud Platform
-- [`tofu-gcp`](./terraform-gcp) - recipes for working with OpenTofu and Google Cloud Platform
+- [`pulumi-gcp`](./pulumi-gcp) - recipes for working with Pulumi and the Google Cloud Platform (gcs) backend for state files
+- [`terraform-gcp`](./terraform-gcp) - recipes for working with Terraform and the Google Cloud Platform (gcs) backend for state files
+- [`tofu`](./tofu) - recipes for working with OpenTofu using the local backend for state files
+- [`tofu-gcp`](./tofu-gcp) - recipes for working with OpenTofu and the Google Cloud Platform (gcs) backend for state files
 
 ## License
 
 This code is licensed under the [MIT License](LICENSE).
 
-(C) [Serhii Prodanov](https://github.com/serpro69)
+(c) [Særgeir](https://github.com/serpro69)
 
 ## Contribute
 
