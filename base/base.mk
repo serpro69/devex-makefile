@@ -20,50 +20,16 @@
 #
 ################################################################################################
 
-################################################################################################
-#                                             INCLUDES
-
-__MAKE_DIR  ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-
-include $(__MAKE_DIR)../base/tf.mk
-
-################################################################################################
-#                                             COMMANDS
-
-_TF     = terraform
-_GCLOUD = gcloud
+# https://stackoverflow.com/a/63771055
+__MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+# Use below for reference on how to use variables in a Makefile:
+# - https://www.gnu.org/software/make/manual/html_node/Using-Variables.html
+# - https://www.gnu.org/software/make/manual/html_node/Flavors.html
+# - https://www.gnu.org/software/make/manual/html_node/Setting.html
+# - https://www.gnu.org/software/make/manual/html_node/Shell-Function.html
 
 ################################################################################################
 #                                             VARIABLES
-
-## NB! Empty (conditional) variables for base.mk and tf.mk overrides to get autocompletion to work
-
-### Terraform|Tofu
-
-WORKSPACE                 ?=
-# Additional, space-separated, tofu command options
-TF_ARGS                   ?=
-# Set a resource path to apply first, before fully converging the entire configuration
-# This is a shortcut to avoid calling make apply twice, i.e. 'make apply TF_ARGS='-target="some_resource.name"' && make apply'
-# NB! this will apply the changes to the `some_resource.name` even when used with 'plan' target.
-TF_CONVERGE_FROM          ?=
-# Plan file path (used with plan, apply, and destroy targets)
-TF_PLAN                   ?=
-# Resource address for 'state' and 'import' targets
-TF_RES_ADDR               ?=
-# Import resource ID
-TF_RES_ID                 ?=
-TF_ENCRYPT_STATE          ?=
-# encryption passphrase for the state file
-TF_ENCRYPTION_PASSPHRASE  ?=
-
-### Google Cloud Platform
-
-GCP_DEFAULT_CONFIGURATION ?= 
-GCP_PROJECT               ?=
-GCP_PREFIX                ?= 
-GCP_POSTFIX               ?= 
-QUOTA_PROJECT             ?= 
 
 ### Terminal
 
@@ -71,40 +37,66 @@ QUOTA_PROJECT             ?=
 NON_INTERACTIVE ?=
 # Set to 'true' to disable some options like colors in environments where $TERM is not set
 NO_TERM         ?=
+# Set to `true` to skip validate
+__NO_VALIDATE   ?=
+
+### Misc
+
+# Change output
+# https://www.mankier.com/5/terminfo#Description-Highlighting,_Underlining,_and_Visible_Bells
+# https://www.linuxquestions.org/questions/linux-newbie-8/tput-for-bold-dim-italic-underline-blinking-reverse-invisible-4175704737/#post6308097
+__RESET          = $(shell tput sgr0)
+__BLINK          = $(shell tput blink)
+__BOLD           = $(shell tput bold)
+__DIM            = $(shell tput dim)
+__SITM           = $(shell tput sitm)
+__REV            = $(shell tput rev)
+__SMSO           = $(shell tput smso)
+__SMUL           = $(shell tput smul)
+# https://www.mankier.com/5/terminfo#Description-Color_Handling
+__BLACK          = $(shell tput setaf 0)
+__RED            = $(shell tput setaf 1)
+__GREEN          = $(shell tput setaf 2)
+__YELLOW         = $(shell tput setaf 3)
+__BLUE           = $(shell tput setaf 4)
+__MAGENTA        = $(shell tput setaf 5)
+__CYAN           = $(shell tput setaf 6)
+__WHITE          = $(shell tput setaf 7)
+# set to 'true' to disable colors
+__NO_COLORS      = false
 
 ################################################################################################
 #                                             RULES
+
+ifeq ($(NO_TERM),true)
+  __NO_COLORS=true
+endif
+
+ifeq ($(origin TERM), undefined)
+  __NO_COLORS=true
+endif
+
+ifeq ($(__NO_COLORS),true)
+  __RESET   =
+  __BLINK   =
+  __BOLD    =
+  __DIM     =
+  __SITM    =
+  __REV     =
+  __SMSO    =
+  __SMUL    =
+  __BLACK   =
+  __RED     =
+  __GREEN   =
+  __YELLOW  =
+  __BLUE    =
+  __MAGENTA =
+  __CYAN    =
+  __WHITE   =
+endif
 
 ################################################################################################
 #                                             FUNCTIONS
 
 ################################################################################################
 #                                             TARGETS
-
-## NB! Empty targets for tf.mk overrides to get autocompletion to work
-
-help:
-
-init:
-
-format:
-
-validate:
-
-test:
-
-plan:
-
-apply:
-
-destroy:
-
-show:
-
-state:
-
-output:
-
-clean:
-
-import:
