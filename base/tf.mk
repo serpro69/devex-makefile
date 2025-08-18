@@ -56,6 +56,7 @@ TF_RES_ID                ?=
 # Encrypt state file
 TF_ENCRYPT_STATE         ?= false
 # encryption passphrase for the state file
+TF_ENCRYPT_METHOD        ?= tofu
 TF_ENCRYPTION_PASS       ?=
 
 ### Environment options
@@ -156,14 +157,27 @@ define tfvars
 	fi
 endef
 
-# Reusable "function" for 'apply', 'destroy' and 'plan' commands
+define tfstate_encrypt
+	`# default definition for tf-init-local overrides`
+endef
+
+define tfstate_decrypt
+	`# default definition for tf-init-local overrides`
+	printf "foo\n"
+endef
+
+define tfstate_checkout
+	`# default definition for tf-init-local overrides`
+endef
+
+# Reusable "function" for terraform|tofu commands
 # Additional, space-separated arguments to the terraform|tofu command are provided via $(TF_ARGS) variable
 define tf
 	$(eval $@_CMD = $(1))
 	$(eval $@_VAR_FILE = $(2))
 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
 
-	@if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then \
+	@if [ "$(TF_ENCRYPT_STATE)" = "true" ] && [ "$(TF_ENCRYPT_METHOD)" = "$(_TF)" ]; then \
 		_passphrase=$$(echo "$(TF_ENCRYPTION_PASS)" | xargs); \
 		if [ -z "$(TF_ENCRYPTION_PASS)" ]; then \
 			read -s -p "Enter encryption passphrase: " _passphrase; \
@@ -171,6 +185,8 @@ define tf
 		fi; \
 		_config=$$(printf 'key_provider "pbkdf2" "main" {\n  passphrase = "%s"\n  key_length = 32\n  salt_length = 32\n  iterations = 600000\n}' "$${_passphrase}"); \
 		export TF_ENCRYPTION="$${_config}"; \
+	elif [ "$(TF_ENCRYPT_STATE)" = "true" ] && [ "$(TF_ENCRYPT_METHOD)" = "sops" ]; then \
+		$(call tfstate_decrypt,); \
 	fi; \
 	case "$($@_CMD)" in \
 		apply|destroy|import|plan) \
@@ -241,9 +257,16 @@ define tf
 				exit 0; \
 			fi; \
 			"$${final_cmd[@]}"; \
+			`# clean up temporary-decrypted tfvars`; \
 			if [ -f terraform.tfvars.sops ] || [ -f terraform.tfvars-$(__ENVIRONMENT).sops ]; then \
 				rm -f terraform.tfvars; \
 			fi; \
+			`# no need to re-encrypt on 'plan' since it does not change the state`; \
+			if [ "$($@_CMD)" = "plan" ]; then \
+				$(call tfstate_checkout,); \
+			else \
+				$(call tfstate_encrypt,); \
+			fi
 			;; \
 		show|state|output) \
 			cmd=("$(_TF)" "$($@_CMD)"); \
@@ -269,6 +292,8 @@ define tf
 				exit 0; \
 			fi; \
 			"$${cmd[@]}"; \
+			`# no need to re-encrypt on 'plan' since it does not change the state`; \
+			$(call tfstate_checkout,); \
 			;; \
 	esac
 endef
@@ -563,7 +588,6 @@ clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
 
 import: SHELL:=/bin/bash
 import: _check-ws ## Import state 📦
-	@`# hide target content`; \
-	printf "$(__BOLD)Importing resource state...$(__RESET)\n\n"; \
+	@printf "$(__BOLD)Importing resource state...$(__RESET)\n\n"; \
 	$(call tf,import,$(__TFVARS_PATH),$(TF_ARGS)); \
-	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"
+	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"; \
