@@ -105,6 +105,12 @@ ifneq ($(_GCLOUD),)
 	include $(__MAKE_DIR)gcloud.mk
 endif
 
+# not sure why I need to do this here, after gcloud.mk include, but otherwise it fails with:
+# gmake: *** No rule to make target '/Users/sergio/Projects/test/gcloud.mk'.  Stop.
+ifneq ($(wildcard $(ENVFILE)),)
+	include $(ENVFILE)
+endif
+
 ################################################################################################
 #                                             FUNCTIONS
 

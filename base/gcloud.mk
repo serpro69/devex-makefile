@@ -36,11 +36,11 @@ _GCLOUD  = gcloud
 
 ### Google Cloud Platform
 
-GCP_DEFAULT_CONFIGURATION  =  default
+GCP_DEFAULT_CONFIGURATION  = default
 GCP_PROJECT               ?= $(shell $(_GCLOUD) config get project 2>/dev/null | tr -d '[:space:]')
-GCP_PREFIX                 =  wlcm
-GCP_POSTFIX                =  ffcb87
-QUOTA_PROJECT              =  $(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
+GCP_PREFIX                ?=
+GCP_POSTFIX               ?=
+QUOTA_PROJECT              = $(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
 
 ################################################################################################
 #                                             RULES
