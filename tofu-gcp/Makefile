@@ -20,6 +20,10 @@
 #
 ################################################################################################
 
+.ONESHELL:
+.SHELL      := $(shell which bash)
+.SHELLFLAGS := -ec
+
 ################################################################################################
 #                                             INCLUDES
 
@@ -55,8 +59,11 @@ TF_PLAN                   ?=
 TF_RES_ADDR               ?=
 # Import resource ID
 TF_RES_ID                 ?=
+# Encrypt state file
 TF_ENCRYPT_STATE          ?=
-# encryption passphrase for the state file
+# sops|tofu
+TF_ENCRYPT_METHOD          = tofu
+# Passphrase for the tofu-encrypted state
 TF_ENCRYPTION_PASSPHRASE  ?=
 
 ### Google Cloud Platform
