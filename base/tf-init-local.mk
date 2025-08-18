@@ -46,8 +46,10 @@ TF_ENCRYPT_STATE ?= true
 ifneq ($(filter help,$(MAKECMDGOALS)),)
   # Skip checks for help target
 else
-	ifeq ($(shell which sops),)
-		$(error "No sops in $(PATH), get it from https://github.com/getsops/sops?tab=readme-ov-file#stable-release")
+	ifeq ($(TF_ENCRYPT_STATE),true)
+		ifeq ($(shell which sops),)
+			$(error "No sops in $(PATH), get it from https://github.com/getsops/sops?tab=readme-ov-file#stable-release")
+		endif
 	endif
 endif
 
