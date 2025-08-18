@@ -53,9 +53,10 @@ TF_PLAN                  ?=
 TF_RES_ADDR              ?=
 # Import resource ID
 TF_RES_ID                ?=
+# Encrypt state file
 TF_ENCRYPT_STATE         ?= false
 # encryption passphrase for the state file
-TF_ENCRYPTION_PASSPHRASE ?=
+TF_ENCRYPTION_PASS       ?=
 
 ### Environment options
 
@@ -102,10 +103,12 @@ ifeq ($(_TF),terraform)
 endif
 
 ifneq ($(_GCLOUD),)
-	include $(__MAKE_DIR)gcloud.mk
+	include $(__MAKE_DIR)tf-init-gcloud.mk
+else
+	include $(__MAKE_DIR)tf-init-local.mk
 endif
 
-# not sure why I need to do this here, after gcloud.mk include, but otherwise it fails with:
+# NOTE: not sure why I need to do this here, after gcloud.mk include, but otherwise it fails with:
 # gmake: *** No rule to make target '/Users/sergio/Projects/test/gcloud.mk'.  Stop.
 ifneq ($(wildcard $(ENVFILE)),)
 	include $(ENVFILE)
@@ -161,8 +164,8 @@ define tf
 	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
 
 	@if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then \
-		_passphrase=$$(echo "$(TF_ENCRYPTION_PASSPHRASE)" | xargs); \
-		if [ -z "$(TF_ENCRYPTION_PASSPHRASE)" ]; then \
+		_passphrase=$$(echo "$(TF_ENCRYPTION_PASS)" | xargs); \
+		if [ -z "$(TF_ENCRYPTION_PASS)" ]; then \
 			read -s -p "Enter encryption passphrase: " _passphrase; \
 			printf "\n"; \
 		fi; \
@@ -344,7 +347,9 @@ help: ## Save our souls! 🛟
 	printf "\n"; \
 	printf "$(__SITM)$(__DIM)Optional:$(__RESET)\n"; \
 	printf "\n"; \
-	printf "$(__BLUE)$(__DIM)sops                         $(__GREEN)https://github.com/getsops/sops?tab=readme-ov-file#download$(__RESET)\n"; \
+	if [ -z $(_GCLOUD) ]; then \
+		printf "$(__BLUE)$(__DIM)sops                         $(__GREEN)https://github.com/getsops/sops?tab=readme-ov-file#download$(__RESET)\n"; \
+	fi; \
 	printf "$(__BLUE)$(__DIM)nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)\n"; \
 	printf "\n"
 
@@ -381,17 +386,10 @@ _check-ws: _set-env
 _update-tfvars:
 	$(call tfvars,)
 
-.PHONY: _init-gcp-config
+.PHONY: _init-gcp-config _init-gcp-project _init-adc
 _init-gcp-config:
-
-.PHONY: _init-gcp-project
 _init-gcp-project:
-
-.PHONY: _init-adc
 _init-adc:
-
-.PHONY: _init-gcs-backend
-_init-gcs-backend:
 
 _init-tf-ws:
 	@`# check/switch workspace`; \
@@ -412,7 +410,7 @@ _init-tflint:
 	fi
 
 init: SHELL:=$(shell which bash)
-init: _check-ws _init-gcp-config _init-gcp-project _init-adc _init-gcs-backend _init-tf-ws _init-tflint ## Hoist the sails and prepare for the voyage! 🌬️💨
+init: _check-ws _init-gcp-config _init-gcp-project _init-adc _init _init-tf-ws _init-tflint ## Hoist the sails and prepare for the voyage! 🌬️💨
 	@printf "$(__BOLD)$(__GREEN)Done initializing $(_TF)$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what $(_TF) thinks it will do when applying changes,$(__RESET)\n"; \

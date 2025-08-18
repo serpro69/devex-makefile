@@ -401,38 +401,6 @@ _check-ws: _set-env
 _update-tfvars:
 	$(call tfvars,)
 
-init: SHELL:=$(shell which bash)
-init: _check-ws ## Hoist the sails and prepare for the voyage! 🌬️💨
-	@$(call tfstate_decrypt,); \
-	printf "$(__BOLD)Initializing tofu...$(__RESET)\n"; \
-	$(TF) init \
-		-reconfigure \
-		-input=false \
-		-force-copy \
-		-lock=true \
-		-upgrade; \
-	`# check/switch workspace`; \
-	printf "$(__BOLD)Checking tofu workspace...$(__RESET)\n"; \
-	_CURRENT_WORKSPACE=$$($(TF) workspace show | tr -d '[:space:]'); \
-	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
-		printf "$(__BOLD)Switching to workspace ($(WORKSPACE))$(__RESET)\n"; \
-		$(TF) workspace select -or-create $(WORKSPACE); \
-	else \
-		printf "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_WORKSPACE})$(__RESET)\n"; \
-	fi; \
-	`# Initialize tflint`; \
-	if [ -f ".tflint.hcl" ]; then \
-		printf "$(__BOLD)Initializing tflint...$(__RESET)\n"; \
-		tflint --init; \
-	fi; \
-	`# checkout state files to re-encrypt them`; \
-	$(call tfstate_checkout,); \
-	`# done`; \
-	printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"; \
-	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"; \
-	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what tofu thinks it will do when applying changes,$(__RESET)\n"; \
-	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"; \
-	$(call tfstate_encrypt,)
 
 format: ## Swab the deck and tidy up! 🧹
 	@$(TF) fmt \

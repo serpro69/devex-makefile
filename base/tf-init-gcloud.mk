@@ -21,7 +21,7 @@
 ################################################################################################
 
 .ONESHELL:
-.PHONY: _update-tfvars _init-gcp-project _init-adc _init-gcs-backend
+.PHONY: _init-gcp-config _init-gcp-project _init-adc _init
 
 .SHELL      := $(shell which bash)
 .SHELLFLAGS := -ec
@@ -60,7 +60,7 @@ endif
 ################################################################################################
 #                                             TARGETS
 
-.PHONY: _update-tfvars
+_init-gcp-config: SHELL:=$(shell which bash)
 _init-gcp-config:
 	@printf "$(__BOLD)Checking active GCP configuration...$(__RESET)\n"; \
 	_CURRENT_CONFIG=$$($(_GCLOUD) config configurations list --filter='is_active=true' --format='value(name)'); \
@@ -74,7 +74,7 @@ _init-gcp-config:
 		fi; \
 	fi
 
-.PHONY: _init-gcp-config
+_init-gcp-project: SHELL:=$(shell which bash)
 _init-gcp-project:
 	@printf "$(__BOLD)Checking GCP project...$(__RESET)\n"; \
 	_DEFAULT_PROJECT=$$($(_GCLOUD) config configurations list --filter='is_active=true' --format='value(properties.core.project)'); \
@@ -106,7 +106,7 @@ _init-gcp-project:
 		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
 	fi
 
-.PHONY: _init-adc
+_init-adc: SHELL:=$(shell which bash)
 _init-adc:
 	@`# Check ADC`; \
 	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
@@ -119,8 +119,8 @@ _init-adc:
 		fi; \
 	fi
 
-.PHONY: _init-gcs-backend
-_init-gcs-backend:
+_init: SHELL:=$(shell which bash)
+_init:
 	@`# Configure GCS backend`; \
 	printf "$(__BOLD)Configuring the $(_TF) backend...$(__RESET)\n"; \
 	_BUCKET_NAME=$$($(_GCLOUD) storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
