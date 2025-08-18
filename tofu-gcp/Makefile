@@ -25,13 +25,15 @@
 
 __MAKE_DIR  ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
-include $(__MAKE_DIR)../base/tf.mk
-
 ################################################################################################
 #                                             COMMANDS
 
 _TF     = tofu
 _GCLOUD = gcloud
+
+# NB! include after commands are set since there are conditionals based on e.g. _GCLOUD being empty or not
+# TODO: consider including right before targets? Or maybe at the very end of the makefile? Not sure what's the best practice here
+include $(__MAKE_DIR)../base/tf.mk
 
 ################################################################################################
 #                                             VARIABLES
