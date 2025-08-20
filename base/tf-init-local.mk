@@ -21,7 +21,7 @@
 ################################################################################################
 
 .ONESHELL:
-.PHONY: _init
+.PHONY: _help_init _init
 
 .SHELL      := $(shell which bash)
 .SHELLFLAGS := -ec
@@ -99,6 +99,15 @@ define tfstate_checkout
 	fi
 endef
 
+_help_init: SHELL:=$(shell which bash)
+_help_init:
+	@`# init-specific help variables`; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮\n"; \
+	printf "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)\n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__MAGENTA)<WORKSPACE>                    $(__TF_ICON) $(_TF) workspace to (potentially create and) switch to\n"
 
 _init: SHELL:=$(shell which bash)
 _init:

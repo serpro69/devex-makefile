@@ -55,8 +55,8 @@ TF_RES_ADDR              ?=
 TF_RES_ID                ?=
 # Encrypt state file
 TF_ENCRYPT_STATE         ?= false
+TF_ENCRYPT_METHOD        ?=
 # encryption passphrase for the state file
-TF_ENCRYPT_METHOD        ?= tofu
 TF_ENCRYPTION_PASS       ?=
 
 ### Environment options
@@ -163,7 +163,6 @@ endef
 
 define tfstate_decrypt
 	`# default definition for tf-init-local overrides`
-	printf "foo\n"
 endef
 
 define tfstate_checkout
@@ -301,6 +300,7 @@ endef
 ################################################################################################
 #                                             TARGETS
 
+help: SHELL:=$(shell which bash)
 help: ## Save our souls! 🛟
 	@printf "$(__BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "$(__BLUE)This Makefile contains opinionated targets that wrap $(_TF) commands,$(__RESET)\n"; \
@@ -326,18 +326,7 @@ help: ## Save our souls! 🛟
 	  grep -E '^[a-zA-Z_-]+:.*?## .*$$' "$$mkfile" | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n\n", $$1, $$2}'; \
 	done; \
 	printf "\n"; \
-	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
-	printf "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮\n"; \
-	printf "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)\n"; \
-	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
-	printf "\n"; \
-	printf "$(__MAGENTA)<WORKSPACE>                    $(__TF_ICON) $(_TF) workspace to (potentially create and) switch to\n"; \
-	printf "$(__MAGENTA)<GCP_PROJECT>                  $(__BLUE)󱇶$(__RESET) GCP project name $(__SITM)(usually, but not always, the project$(__RESET)\n"; \
-	printf "                               $(__SITM)that $(_TF) changes are being applied to)$(__RESET)\n"; \
-	printf "$(__MAGENTA)<GCP_PREFIX>                   $(__GREEN)󰾺$(__RESET) Prefix to use in some other GCP-related variables\n"; \
-	printf "                               $(__SITM)(e.g., short company name)$(__RESET)\n"; \
-	printf "$(__MAGENTA)<QUOTA_PROJECT>                $(__CYAN)$(__RESET) GCP quota project name\n"; \
-	printf "                               $(__SITM)(NB! we assume quota project contains the .tfstate bucket)$(__RESET)\n"; \
+	$(MAKE) --quiet _help_init; \
 	printf "\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮\n"; \
@@ -351,7 +340,25 @@ help: ## Save our souls! 🛟
 	printf "                               $(__SITM)(used with 'plan', 'apply', 'destroy' and 'show' targets)$(__RESET)\n"; \
 	printf "$(__MAGENTA)<TF_RES_ADDR>                  $(__TF_ICON) Resource ADDR for $(_TF) state/import commands\n"; \
 	printf "$(__MAGENTA)<TF_RES_ID>                    $(__TF_ICON) Resource ID for $(_TF) import command\n"; \
+	printf "$(__MAGENTA)<TF_ENCRYPT_STATE>             $(__TF_ICON) Set to 'true' to encrypt the state file\n"; \
+	printf "$(__MAGENTA)<TF_ENCRYPT_METHOD>            $(__TF_ICON) Method to use for state encryption\n"; \
+	if [ ! -z $(_GCLOUD) ] && [ "$(_TF)" == "tofu" ]; then \
+		printf "                               $(__SITM)(Read more about tofu state encryption:$(__RESET)\n"; \
+		printf "                               $(__SITM)  https://opentofu.org/docs/language/state/encryption/)$(__RESET)\n"; \
+		printf "                               $(__SITM)Values: (tofu|sops)$(__RESET)\n"; \
+		printf "                               $(__SITM)Default: tofu$(__RESET)\n"; \
+		printf "$(__MAGENTA)<TF_ENCRYPTION_PASS>           $(__TF_ICON) Passphrase for tofu-based encryption method\n"; \
+	else \
+		printf "                               $(__SITM)Values: (sops)$(__RESET)\n"; \
+		printf "                               $(__SITM)Default: sops$(__RESET)\n"; \
+	fi; \
+	printf "\n"; \
+	printf "$(__MAGENTA)<ENVFILE>                      $(__YELLOW)$(__RESET) Path to an env file with these input variables\n"; \
+	printf "                               $(__SITM)(use to set some or all input variables for this makefile)$(__RESET)\n"; \
+	printf "                               $(__SITM)Default: ./.env$(__RESET)\n"; \
+	printf "\n"; \
 	printf "$(__MAGENTA)<NON_INTERACTIVE>              $(__MAGENTA)$(__RESET) Set to 'true' to disable Makefile prompts\n"; \
+	printf "                               $(__SITM)(Default: false)$(__RESET)\n"; \
 	printf "                               $(__SITM)(NB! This does not disable prompts coming from $(_TF))$(__RESET)\n"; \
 	printf "\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
@@ -375,7 +382,8 @@ help: ## Save our souls! 🛟
 	if [ -z $(_GCLOUD) ]; then \
 		printf "$(__BLUE)$(__DIM)sops                         $(__GREEN)https://github.com/getsops/sops?tab=readme-ov-file#download$(__RESET)\n"; \
 	fi; \
-	printf "$(__BLUE)$(__DIM)nerd font (for this help)    $(__GREEN)https://www.nerdfonts.com/$(__RESET)\n"; \
+	printf "$(__BLUE)$(__DIM)nerd font                    $(__GREEN)https://www.nerdfonts.com/$(__RESET)\n"; \
+	printf "$(__BLUE)$(__DIM)$(__SITM)(for outputs and this help)$(__RESET)\n"; \
 	printf "\n"
 
 .PHONY: _set-env

@@ -56,7 +56,7 @@ TF_PLAN          ?=
 TF_RES_ADDR      ?=
 TF_RES_ID        ?= 
 # Encrypt state file with sops
-TF_ENCRYPT_STATE  ?= true
+TF_ENCRYPT_STATE  := true
 # sops|tofu
 TF_ENCRYPT_METHOD ?= sops
 

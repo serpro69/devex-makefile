@@ -20,18 +20,24 @@
 #
 ################################################################################################
 
+.ONESHELL:
+.SHELL      := $(shell which bash)
+.SHELLFLAGS := -ec
+
 ################################################################################################
 #                                             INCLUDES
 
 __MAKE_DIR  ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-
-include $(__MAKE_DIR)../base/tf.mk
 
 ################################################################################################
 #                                             COMMANDS
 
 _TF     = terraform
 _GCLOUD = gcloud
+
+# NB! include after commands are set since there are conditionals based on e.g. _GCLOUD being empty or not
+# TODO: consider including right before targets? Or maybe at the very end of the makefile? Not sure what's the best practice here
+include $(__MAKE_DIR)../base/tf.mk
 
 ################################################################################################
 #                                             VARIABLES
@@ -53,9 +59,9 @@ TF_PLAN                   ?=
 TF_RES_ADDR               ?=
 # Import resource ID
 TF_RES_ID                 ?=
-TF_ENCRYPT_STATE          ?=
-# encryption passphrase for the state file
-TF_ENCRYPTION_PASSPHRASE  ?=
+# Encrypt state file
+TF_ENCRYPT_STATE          ?= false
+TF_ENCRYPT_METHOD         := sops
 
 ### Google Cloud Platform
 
