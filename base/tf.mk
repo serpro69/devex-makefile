@@ -508,7 +508,7 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 		exit 1; \
 	fi; \
 	`# check backend configuration`; \
-	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
+	if ! (cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix' | xargs | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
 		printf "$(__BOLD)$(__RED)$(_TF) state is configured with NON-test backend!$(__RESET)\n"; \
 		exit 1; \
 	fi; \
@@ -524,7 +524,7 @@ test: validate _check-ws ## Run some drills before we plunder! ⚔️  🏹
 		exit 1; \
 	fi; \
 	`# check backend configuration`; \
-	if ! (cat .terraform/terraform.tfstate | jq '.backend.config.prefix' | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
+	if ! (cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix' | xargs | grep -q '$(__BUCKET_DIR)/$(__TEST_BUCKET_SUBDIR)'); then \
 		printf "$(__BOLD)$(__RED)$(_TF) state is configured with NON-test backend!$(__RESET)\n"; \
 		exit 1; \
 	fi; \

@@ -109,7 +109,7 @@ _init-gcp-project:
 _init-adc: SHELL:=$(shell which bash)
 _init-adc:
 	@`# Check ADC`; \
-	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq '.quota_project_id' | tr -d '"'); \
+	_CURRENT_QUOTA_PROJECT=$$(cat ~/.config/gcloud/application_default_credentials.json | jq -r '.quota_project_id' | xargs); \
 	if [ "$(QUOTA_PROJECT)" != "$${_CURRENT_QUOTA_PROJECT}" ]; then \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to update ADC quota-project from ($${_CURRENT_QUOTA_PROJECT}) to ($(QUOTA_PROJECT))? [y/Y]: $(__RESET)" ANSWER && \
