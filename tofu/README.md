@@ -39,14 +39,14 @@ You can, of course, just download the [raw version of Makefile](https://raw.gith
 View a description of Makefile targets with `help` via the [self-documenting makefile](https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html).
 
 ```text
-➜ make
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 This Makefile contains opinionated targets that wrap tofu commands,
-providing sane defaults, initialization shortcuts for tofu environment.
+providing sane defaults, initialization shortcuts for tofu environment,
+and support for remote tofu backends via Google Cloud Storage.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Usage:
-> WORKSPACE=demo make init
+> GCP_PROJECT=demo WORKSPACE=demo make init
 > make plan
 
 Tip: Add a <space> before the command if it contains sensitive information,
@@ -56,35 +56,27 @@ to keep it from bash history!
 Available commands ⌨️
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-apply                         Set course and full speed ahead! ⛵ This will cost you! 💰
-
-clean                         Nuke local .terraform directory and tools' caches! 💥
-
-destroy                       Release the Kraken! 🐙 This can't be undone! ☠️
-
-format                        Swab the deck and tidy up! 🧹
-
-help                          Save our souls! 🛟
-
-import                        Import state 📦
-
-init                          Hoist the sails and prepare for the voyage! 🌬️💨
-
-plan                          Chart the course before you sail! 🗺️
-
-plan-destroy                  What would happen if we blow it all to smithereens? 💣
-
 test                          Run some drills before we plunder! ⚔️  🏹
-
+apply                         Set course and full speed ahead! ⛵ This will cost you! 💰
+clean                         Nuke local .terraform directory and tools' caches! 💥
+destroy                       Release the Kraken! 🐙 This can't be undone! ☠️
+format                        Swab the deck and tidy up! 🧹
+help                          Save our souls! 🛟
+import                        Import state 📦
+init                          Hoist the sails and prepare for the voyage! 🌬️💨
+output                        Explore the outcomes of the trip! 💰
+plan                          Chart the course before you sail! 🗺️
+show                          Show the current state of the world! 🌍
+state                         Make the world dance to your tunes! 🎻
+test                          Run some drills before we plunder! ⚔️  🏹
 validate                      Inspect the rigging and report any issues! 🔍
-
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Input variables for 'init' 🧮
 (Note: these are only used with 'init' target!)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-<WORKSPACE>                     Tofu workspace to (potentially create and) switch to
+<WORKSPACE>                     tofu workspace to (potentially create and) switch to
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Input variables 🧮
@@ -94,11 +86,21 @@ Input variables 🧮
                                (e.g., make apply TF_ARGS='-out=foo.out -lock=false')
 <TF_CONVERGE_FROM>              Resource path to apply first
                                (before fully converging the entire configuration)
-<TF_PLAN>                       Tofu plan file path
-                               (used with 'plan', 'apply' and 'destroy' targets)
-<TF_IMPORT_ADDR>                Resource ADDR for tofu import command
-<TF_IMPORT_ID>                  Resource ID for tofu import command
+<TF_PLAN>                       tofu plan file path
+                               (used with 'plan', 'apply', 'destroy' and 'show' targets)
+<TF_RES_ADDR>                   Resource ADDR for tofu state/import commands
+<TF_RES_ID>                     Resource ID for tofu import command
+<TF_ENCRYPT_STATE>              Set to 'true' to encrypt the state file
+<TF_ENCRYPT_METHOD>             Method to use for state encryption
+                               Values: (sops)
+                               Default: sops
+
+<ENVFILE>                       Path to an env file with these input variables
+                               (use to set some or all input variables for this makefile)
+                               Default: ./.env
+
 <NON_INTERACTIVE>               Set to 'true' to disable Makefile prompts
+                               (Default: false)
                                (NB! This does not disable prompts coming from tofu)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -113,8 +115,8 @@ trivy                        https://github.com/aquasecurity/trivy?tab=readme-ov
 Optional:
 
 sops                         https://github.com/getsops/sops?tab=readme-ov-file#download
-nerd font (for this help)    https://www.nerdfonts.com/
-
+nerd font                    https://www.nerdfonts.com/
+(for outputs and this help)
 ```
 
 > [!NOTE]

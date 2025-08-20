@@ -60,9 +60,9 @@ TF_RES_ADDR               ?=
 # Import resource ID
 TF_RES_ID                 ?=
 # Encrypt state file
-TF_ENCRYPT_STATE          ?=
+TF_ENCRYPT_STATE          ?= false
 # sops|tofu
-TF_ENCRYPT_METHOD          = tofu
+TF_ENCRYPT_METHOD         := tofu
 # Passphrase for the tofu-encrypted state
 TF_ENCRYPTION_PASSPHRASE  ?=
 
