@@ -21,7 +21,7 @@
 ################################################################################################
 
 .ONESHELL:
-.PHONY: _init-gcp-config _init-gcp-project _init-adc _init
+.PHONY: _help_init _init-gcp-config _init-gcp-project _init-adc _init
 
 .SHELL      := $(shell which bash)
 .SHELLFLAGS := -ec
@@ -59,6 +59,26 @@ endif
 
 ################################################################################################
 #                                             TARGETS
+
+_help_init: SHELL:=$(shell which bash)
+_help_init:
+	@`# init-specific help variables`; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮\n"; \
+	printf "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)\n"; \
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
+	printf "\n"; \
+	printf "$(__MAGENTA)<WORKSPACE>                    $(__TF_ICON) $(_TF) workspace to (potentially create and) switch to\n"; \
+	printf "$(__MAGENTA)<GCP_PROJECT>                  $(__BLUE)󱇶$(__RESET) GCP project name $(__SITM)(usually, but not always, the project$(__RESET)\n"; \
+	printf "                               $(__SITM)that $(_TF) changes are being applied to)$(__RESET)\n"; \
+	printf "                               $(__SITM)Default: \`$(_GCLOUD) config get project\`$(__RESET)\n"
+	printf "$(__MAGENTA)<GCP_PREFIX>                   $(__GREEN)󰾺$(__RESET) Prefix to use for QUOTA_PROJECT\n"; \
+	printf "                               $(__SITM)(e.g., short company name)$(__RESET)\n"; \
+	printf "$(__MAGENTA)<GCP_POSTFIX>                  $(__GREEN)󰾺$(__RESET) Postfix to use for QUOTA_PROJECT\n"; \
+	printf "                               $(__SITM)(e.g., id hash string)$(__RESET)\n"; \
+	printf "$(__MAGENTA)<QUOTA_PROJECT>                $(__CYAN)$(__RESET) Override GCP quota project id\n"; \
+	printf "                               $(__SITM)(NB! we assume quota project contains the .tfstate bucket)$(__RESET)\n"; \
+	printf "                               $(__SITM)Default: <GCP_PREFIX>-tfstate-<GCP_POSTFIX>$(__RESET)\n"
 
 _init-gcp-config: SHELL:=$(shell which bash)
 _init-gcp-config:
