@@ -39,6 +39,10 @@ __MAKE_DIR  ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 # Encrypt state file
 TF_ENCRYPT_STATE ?= true
 
+### Environment options
+
+__GIT_DEFAULT_BRANCH  =  main
+
 ################################################################################################
 #                                             RULES
 
@@ -141,3 +145,65 @@ _init:
 	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what tofu thinks it will do when applying changes,$(__RESET)\n"; \
 	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"; \
 	$(call tfstate_encrypt,)
+
+_test: SHELL:=/bin/bash
+_test:
+	@`# suppress target contents output`; \
+	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
+	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
+	if [ -n "$${_GIT_STATUS}" ]; then \
+		printf "$(__BOLD)$(__RED)Working directory has uncommitted changes. Commit or stash your changes before proceeding!$(__RESET)\n"; \
+		exit 1; \
+	elif [ "$${_GIT_CURRENT_BRANCH}" = "$(__GIT_DEFAULT_BRANCH)" ]; then \
+		printf "$(__BOLD)$(__RED)Unable to proceed in a default git branch. Switch to another branch before proceeding$(__RESET)\n"; \
+		exit 1; \
+	fi; \
+	_INITIAL_WORKSPACE=$$($(_TF) workspace show | tr -d '[:space:]'); \
+	_TEMP_WORKSPACE="test-$$(uuidgen | cut -d '-' -f 1)"; \
+	`# use latest changes in default, upstream branch as baseline`; \
+	git pull origin $(__GIT_DEFAULT_BRANCH) && git checkout origin/$(__GIT_DEFAULT_BRANCH); \
+	`# ensure vars and inputs are available for testing`; \
+	_initial_vars_file_path="vars/$${_INITIAL_WORKSPACE}.tfvars"; \
+	[ -f "$${_initial_vars_file_path}" ] && cp "$${_initial_vars_file_path}" "vars/$${_TEMP_WORKSPACE}.tfvars"; \
+	[ -f "$${_initial_vars_file_path}.sops" ] && cp "$${_initial_vars_file_path}.sops" "vars/$${_TEMP_WORKSPACE}.tfvars.sops"; \
+	[ -f "inputs/${_INITIAL_WORKSPACE}" ] && cp -r "inputs/$${_INITIAL_WORKSPACE}" "inputs/$${_TEMP_WORKSPACE}"; \
+	`# init`; \
+	$(MAKE) init NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
+	`# check if we're running in a temp workspace`; \
+	_CURRENT_WORKSPACE=$$($(_TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
+		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
+		exit 1; \
+	fi; \
+	`# apply against origin baseline`; \
+	$(MAKE) apply NON_INTERACTIVE=true; \
+	`# switch back to initial branch`; \
+	git switch -; \
+	`# re-initialize tofu to pull latest modules, providers, etc from the changeset under test`; \
+	$(MAKE) init NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
+	`# check if we're running in a temp workspace`; \
+	_CURRENT_WORKSPACE=$$($(_TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
+		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
+		exit 1; \
+	fi; \
+	`# apply to test the changeset`; \
+	$(MAKE) apply NON_INTERACTIVE=true; \
+	printf "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)\n"; \
+	`# cleanup`; \
+	if [ "$(NON_INTERACTIVE)" = "true" ]; then \
+		$(MAKE) destroy; \
+		$(_TF) workspace select "$${_INITIAL_WORKSPACE}"; \
+		$(_TF) workspace delete --force "$${_TEMP_WORKSPACE}"; \
+	fi; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
+	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+		$(MAKE) destroy; \
+	fi; \
+	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
+	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_WORKSPACE}) workspace and delete ($${_TEMP_WORKSPACE}) workspace? [y/Y]: $(__RESET)" ANSWER && \
+	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+		$(_TF) workspace select "$${_INITIAL_WORKSPACE}"; \
+		$(_TF) workspace delete --force "$${_TEMP_WORKSPACE}"; \
+	fi; \
+	`# checkout state files to re-encrypt them`; \
+	$(call tfstate_checkout,)
