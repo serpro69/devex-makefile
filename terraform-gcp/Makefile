@@ -63,6 +63,10 @@ TF_RES_ID                 ?=
 TF_ENCRYPT_STATE          ?= false
 TF_ENCRYPT_METHOD         := sops
 
+### gcloud options
+
+GCLOUD_LAUNCH_BROWSER     ?=
+
 ### Google Cloud Platform
 
 GCP_DEFAULT_CONFIGURATION ?= 
