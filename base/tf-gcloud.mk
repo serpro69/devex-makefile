@@ -34,6 +34,10 @@ _GCLOUD  = gcloud
 ################################################################################################
 #                                             VARIABLES
 
+### gcloud options
+
+GCLOUD_LAUNCH_BROWSER     ?= false
+
 ### Google Cloud Platform
 
 GCP_DEFAULT_CONFIGURATION  = default
@@ -111,7 +115,11 @@ _init-gcp-project:
 		read -p "$(__BOLD)$(__MAGENTA)Default project: $${_DEFAULT_PROJECT}, current project: $${_CURRENT_PROJECT}. Do you want to switch project? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
 			$(_GCLOUD) config set project $(GCP_PROJECT) && \
-			$(_GCLOUD) auth login --update-adc ; \
+			if [ "$(GCLOUD_LAUNCH_BROWSER)" = "true" ]; then \
+				$(_GCLOUD) auth login --brief --update-adc; \
+			else \
+				$(_GCLOUD) auth login --no-launch-browser --update-adc ; \
+			fi; \
 			printf "$(__BOLD)$(__GREEN)Project changed to $(GCP_PROJECT)$(__RESET)\n"; \
 		else \
 			printf "$(__BOLD)$(__CYAN)Using project ($${_CURRENT_PROJECT})$(__RESET)\n"; \
@@ -121,14 +129,22 @@ _init-gcp-project:
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_DEFAULT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(_GCLOUD) auth login --update-adc ; \
+			if [ "$(GCLOUD_LAUNCH_BROWSER)" = "true" ]; then \
+				$(_GCLOUD) auth login --brief --update-adc; \
+			else \
+				$(_GCLOUD) auth login --no-launch-browser --update-adc ; \
+			fi; \
 		fi; \
 		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
 	else \
 		[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 		read -p "$(__BOLD)$(__MAGENTA)Do you want to re-login and update ADC with ($${_CURRENT_PROJECT}) project? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-			$(_GCLOUD) auth login --update-adc ; \
+			if [ "$(GCLOUD_LAUNCH_BROWSER)" = "true" ]; then \
+				$(_GCLOUD) auth login --brief --update-adc; \
+			else \
+				$(_GCLOUD) auth login --no-launch-browser --update-adc ; \
+			fi; \
 		fi; \
 		printf "$(__BOLD)$(__CYAN)Project is set to ($${_CURRENT_PROJECT})$(__RESET)\n"; \
 	fi

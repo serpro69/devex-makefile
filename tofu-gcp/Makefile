@@ -66,6 +66,10 @@ TF_ENCRYPT_METHOD         := tofu
 # Passphrase for the tofu-encrypted state
 TF_ENCRYPTION_PASSPHRASE  ?=
 
+### gcloud options
+
+GCLOUD_LAUNCH_BROWSER     ?=
+
 ### Google Cloud Platform
 
 GCP_DEFAULT_CONFIGURATION ?= 
