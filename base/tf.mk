@@ -131,7 +131,7 @@ define tfvars
 				cp terraform.tfvars{,.bak.$$(date +%s%N)}; \
 			fi; \
 			sops decrypt "$${enc_tfvars_file}" > terraform.tfvars; \
-			printf "" >> terraform.tfvars; \
+			printf "\n" >> terraform.tfvars; \
 		fi; \
 	fi; \
 	search_string="$(WORKSPACE)"; \
@@ -148,7 +148,7 @@ define tfvars
 			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
 		else \
 			sops decrypt "$${enc_ws_tfvars_file}" >> terraform.tfvars; \
-			printf "" >> terraform.tfvars; \
+			printf "\n" >> terraform.tfvars; \
 		fi; \
 	fi
 endef
