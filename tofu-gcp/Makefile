@@ -48,6 +48,8 @@ include $(__MAKE_DIR)../base/tf.mk
 
 WORKSPACE                 ?=
 # Additional, space-separated, tofu command options
+TF_OPTS                   ?=
+# Additional, space-separated, tofu command arguments
 TF_ARGS                   ?=
 # Set a resource path to apply first, before fully converging the entire configuration
 # This is a shortcut to avoid calling make apply twice, i.e. 'make apply TF_ARGS='-target="some_resource.name"' && make apply'

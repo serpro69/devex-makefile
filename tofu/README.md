@@ -82,8 +82,10 @@ Input variables for 'init' 🧮
 Input variables 🧮
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+<TF_OPTS>                       Additional tofu command options
+                               (e.g., make apply TF_OPTS='-out=foo.out -lock=false')
 <TF_ARGS>                       Additional tofu command arguments
-                               (e.g., make apply TF_ARGS='-out=foo.out -lock=false')
+                               (e.g., make output TF_OPTS='-raw' TF_ARGS='project_id')
 <TF_CONVERGE_FROM>              Resource path to apply first
                                (before fully converging the entire configuration)
 <TF_PLAN>                       tofu plan file path
