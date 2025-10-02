@@ -42,6 +42,8 @@ _TF 	  ?=
 
 WORKSPACE                ?= $(shell $(_TF) workspace show | tr -d '[:space:]')
 # Additional, space-separated, tofu command options
+TF_OPTS                  ?=
+# Additional, space-separated, tofu command arguments
 TF_ARGS                  ?=
 # Set a resource path to apply first, before fully converging the entire configuration
 # This is a shortcut to avoid calling make apply twice, i.e. 'make apply TF_ARGS='-target="some_resource.name"' && make apply'
@@ -166,11 +168,12 @@ define tfstate_checkout
 endef
 
 # Reusable "function" for terraform|tofu commands
-# Additional, space-separated arguments to the terraform|tofu command are provided via $(TF_ARGS) variable
+# Additional, space-separated options and/or arguments to the terraform|tofu command are provided via $(TF_OPTS) and $(TF_ARGS) variables
 define tf
 	$(eval $@_CMD = $(1))
 	$(eval $@_VAR_FILE = $(2))
-	$(eval $@_ARGS = $(foreach arg,$(3),$(arg)))
+	$(eval $@_OPTS = $(foreach opt,$(3),$(opt)))
+	$(eval $@_ARGS = $(foreach arg,$(4),$(arg)))
 
 	@if [ "$(TF_ENCRYPT_STATE)" = "true" ] && [ "$(TF_ENCRYPT_METHOD)" = "$(_TF)" ]; then \
 		_passphrase=$$(echo "$(TF_ENCRYPTION_PASS)" | xargs); \
@@ -188,6 +191,9 @@ define tf
 			cmd=("$(_TF)" "$($@_CMD)" "-lock=true" "-input=false"); \
 			if [ "$($@_CMD)" != "import" ]; then \
 				cmd+=("-refresh=true"); \
+			fi; \
+			if [ ! "$($@_OPTS)" = "" ]; then \
+				cmd+=("$($@_OPTS)"); \
 			fi; \
 			if [ ! "$($@_ARGS)" = "" ]; then \
 				cmd+=("$($@_ARGS)"); \
@@ -265,6 +271,9 @@ define tf
 			;; \
 		show|state|output) \
 			cmd=("$(_TF)" "$($@_CMD)"); \
+			if [ ! "$($@_OPTS)" = "" ]; then \
+				cmd+=("$($@_OPTS)"); \
+			fi; \
 			if [ ! "$($@_ARGS)" = "" ]; then \
 				cmd+=("$($@_ARGS)"); \
 			fi; \
@@ -328,8 +337,10 @@ help: ## Save our souls! 🛟
 	printf "$(__YELLOW)$(__SITM)Input variables$(__RESET) 🧮\n"; \
 	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
 	printf "\n"; \
+	printf "$(__MAGENTA)<TF_OPTS>                      $(__TF_ICON) Additional $(_TF) command options\n"; \
+	printf "                               $(__SITM)(e.g., make apply TF_OPTS='-out=foo.out -lock=false')$(__RESET)\n"; \
 	printf "$(__MAGENTA)<TF_ARGS>                      $(__TF_ICON) Additional $(_TF) command arguments\n"; \
-	printf "                               $(__SITM)(e.g., make apply TF_ARGS='-out=foo.out -lock=false')$(__RESET)\n"; \
+	printf "                               $(__SITM)(e.g., make output TF_OPTS='-raw' TF_ARGS='project_id')$(__RESET)\n"; \
 	printf "$(__MAGENTA)<TF_CONVERGE_FROM>             $(__TF_ICON) Resource path to apply first\n"; \
 	printf "                               $(__SITM)(before fully converging the entire configuration)$(__RESET)\n"; \
 	printf "$(__MAGENTA)<TF_PLAN>                      $(__TF_ICON) $(_TF) plan file path\n"; \
@@ -488,27 +499,27 @@ test: validate _check-ws _test ## Run some drills before we plunder! ⚔️  �
 
 plan: SHELL:=/bin/bash
 plan: _check-ws ## Chart the course before you sail! 🗺️
-	@$(call tf,plan,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,plan,$(__TFVARS_PATH),$(TF_OPTS),$(TF_ARGS))
 
 apply: SHELL:=/bin/bash
 apply: validate _check-ws ## Set course and full speed ahead! ⛵ This will cost you! 💰
-	@$(call tf,apply,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,apply,$(__TFVARS_PATH),$(TF_OPTS),$(TF_ARGS))
 
 destroy: SHELL:=/bin/bash
 destroy: validate _check-ws ## Release the Kraken! 🐙 This can't be undone! ☠️
-	@$(call tf,destroy,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,destroy,$(__TFVARS_PATH),$(TF_OPTS),$(TF_ARGS))
 
 show: SHELL:=/bin/bash
 show: _check-ws ## Show the current state of the world! 🌍
-	@$(call tf,show,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,show,$(__TFVARS_PATH),$(TF_OPTS),$(TF_ARGS))
 
 state: SHELL:=/bin/bash
 state: _check-ws ## Make the world dance to your tunes! 🎻
-	@$(call tf,state,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,state,$(__TFVARS_PATH),$(TF_OPTS),$(TF_ARGS))
 
 output: SHELL:=/bin/bash
 output: _check-ws ## Explore the outcomes of the trip! 💰
-	@$(call tf,output,$(__TFVARS_PATH),$(TF_ARGS))
+	@$(call tf,output,$(__TFVARS_PATH),$(TF_OPTS),$(TF_ARGS))
 
 clean: SHELL:=/bin/bash
 clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
@@ -526,5 +537,5 @@ clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
 import: SHELL:=/bin/bash
 import: _check-ws ## Import state 📦
 	@printf "$(__BOLD)Importing resource state...$(__RESET)\n\n"; \
-	$(call tf,import,$(__TFVARS_PATH),$(TF_ARGS)); \
+	$(call tf,import,$(__TFVARS_PATH),$(TF_OPTS),$(TF_ARGS)); \
 	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"; \
