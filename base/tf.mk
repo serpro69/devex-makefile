@@ -193,10 +193,10 @@ define tf
 				cmd+=("-refresh=true"); \
 			fi; \
 			if [ ! "$($@_OPTS)" = "" ]; then \
-				cmd+=("$($@_OPTS)"); \
+				cmd+=($($@_OPTS)); \
 			fi; \
 			if [ ! "$($@_ARGS)" = "" ]; then \
-				cmd+=("$($@_ARGS)"); \
+				cmd+=($($@_ARGS)); \
 			fi; \
 			if [ ! "$(TF_CONVERGE_FROM)" = "" ]; then \
 				_tmp_cmd=("$${cmd[@]}"); \
@@ -272,10 +272,10 @@ define tf
 		show|state|output) \
 			cmd=("$(_TF)" "$($@_CMD)"); \
 			if [ ! "$($@_OPTS)" = "" ]; then \
-				cmd+=("$($@_OPTS)"); \
+				cmd+=($($@_OPTS)); \
 			fi; \
 			if [ ! "$($@_ARGS)" = "" ]; then \
-				cmd+=("$($@_ARGS)"); \
+				cmd+=($($@_ARGS)); \
 			fi; \
 			if [ "$($@_CMD)" = "state" ]; then \
 				if [ ! "$(TF_RES_ADDR)" = "" ]; then \
