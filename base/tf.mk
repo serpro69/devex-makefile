@@ -245,8 +245,8 @@ define tf
 				if [ -f "$($@_VAR_FILE)" ]; then \
 					final_cmd+=("-var-file=$($@_VAR_FILE)"); \
 				fi; \
-				final_cmd+=("$(TF_RES_ADDR)"); \
-				final_cmd+=("$(TF_RES_ID)"); \
+				final_cmd+=($(TF_RES_ADDR)); \
+				final_cmd+=($(TF_RES_ID)); \
 			else \
 				if [ -f "$($@_VAR_FILE)" ]; then \
 					final_cmd+=("-var-file=$($@_VAR_FILE)"); \
@@ -254,7 +254,7 @@ define tf
 			fi; \
 			if [ "$(__DEBUG)" == "true" ]; then \
 				printf "\n$(__MAGENTA)Encryption config $($@_CMD):\n$(__BOLD)$(__SITM)%s$(__RESET)\n" "$${TF_ENCRYPTION}"; \
-				printf "\n$(__MAGENTA)$(_TF) $($@_CMD): $(__BOLD)$(__SITM)%s$(__RESET)\n" "$${cmd[*]}"; \
+				printf "\n$(__MAGENTA)$(_TF) $($@_CMD): $(__BOLD)$(__SITM)%s$(__RESET)\n" "$${final_cmd[*]}"; \
 				exit 0; \
 			fi; \
 			"$${final_cmd[@]}"; \
@@ -537,5 +537,5 @@ clean: _check-ws ## Nuke local .terraform directory and tools' caches! 💥
 import: SHELL:=/bin/bash
 import: _check-ws ## Import state 📦
 	@printf "$(__BOLD)Importing resource state...$(__RESET)\n\n"; \
-	$(call tf,import,$(__TFVARS_PATH),$(TF_OPTS),$(TF_ARGS)); \
+	$(call tf,import,$(__TFVARS_PATH),$(TF_OPTS),); \
 	printf "\n$(__BOLD)$(__GREEN)Done importing resource$(__RESET)\n"; \
