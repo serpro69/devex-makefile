@@ -49,6 +49,7 @@ QUOTA_PROJECT              = $(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
 ### Environment options
 
 __BUCKET_DIR          =  terraform/state
+__BUCKET_SUBDIR       ?=
 __PROD_BUCKET_SUBDIR  =  prod
 __TEST_BUCKET_SUBDIR  =  test
 __GIT_DEFAULT_BRANCH  =  main
@@ -169,15 +170,19 @@ _init:
 	_BUCKET_NAME=$$($(_GCLOUD) storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]'); \
 	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR); \
 	_COLOR=$(__GREEN); \
-	([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
-	read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
-	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
-		_COLOR=$(__RED); \
-	fi; \
-	if ([ "$(NON_INTERACTIVE)" = "true" ] && [ "$(__ENVIRONMENT)" = "prod" ]); then \
-		_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
-		_COLOR=$(__RED); \
+	if [ ! $(__BUCKET_SUBDIR) = "" ]; then \
+		_BUCKET_SUBDIR="$(__BUCKET_SUBDIR)"; \
+	else \
+		([ ! "$(NON_INTERACTIVE)" = "true" ] && [ ! "$(__ENVIRONMENT)" = "test" ]) && \
+		read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
+		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
+			_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
+			_COLOR=$(__RED); \
+		fi; \
+		if ([ "$(NON_INTERACTIVE)" = "true" ] && [ "$(__ENVIRONMENT)" = "prod" ]); then \
+			_BUCKET_SUBDIR=$(__PROD_BUCKET_SUBDIR); \
+			_COLOR=$(__RED); \
+		fi; \
 	fi; \
 	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"; \
 	printf "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)\n"; \
