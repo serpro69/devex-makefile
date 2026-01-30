@@ -62,148 +62,148 @@ endif
 
 
 define tfstate_encrypt
-	if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then \
-		printf "$(__BOLD)$(__GREEN)Encrypting tfstate files$(__RESET)\n"; \
-		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = false ]; then \
-			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
-		else \
+	if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then
+		printf "$(__BOLD)$(__GREEN)Encrypting tfstate files$(__RESET)\n"
+		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = false ]; then
+			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH)
+		else
 			printf "$(__DIM)$(__TFSTATE_PATH) already encrypted or does not exist\n$(__RESET)"
-		fi; \
-		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = false ]; then \
-			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
-		else \
+		fi
+		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = false ]; then
+			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH)
+		else
 			printf "$(__DIM)$(__TFSTATE_BACKUP_PATH) already encrypted or does not exist\n$(__RESET)"
-		fi; \
-	else \
-		printf "$(__BOLD)$(__YELLOW)Skipping tfstate encryption$(__RESET)\n"; \
+		fi
+	else
+		printf "$(__BOLD)$(__YELLOW)Skipping tfstate encryption$(__RESET)\n"
 	fi
 endef
 
 define tfstate_decrypt
-	if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then \
-		printf "$(__BOLD)$(__GREEN)Decrypting tfstate files$(__RESET)\n"; \
-		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = true ]; then \
-			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
-		else \
+	if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then
+		printf "$(__BOLD)$(__GREEN)Decrypting tfstate files$(__RESET)\n"
+		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = true ]; then
+			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH)
+		else
 			printf "$(__DIM)$(__TFSTATE_PATH) already decrypted or does not exist\n$(__RESET)"
-		fi; \
-		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = true ]; then \
-			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
-		else \
+		fi
+		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = true ]; then
+			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH)
+		else
 			printf "$(__DIM)$(__TFSTATE_BACKUP_PATH) already decrypted or does not exist\n$(__RESET)"
-		fi; \
-	else \
-		printf "$(__BOLD)$(__YELLOW)Skipping tfstate decryption$(__RESET)\n"; \
+		fi
+	else
+		printf "$(__BOLD)$(__YELLOW)Skipping tfstate decryption$(__RESET)\n"
 	fi
 endef
 
 define tfstate_checkout
-	if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then \
-		git checkout terraform.tfstate.d || true; \
+	if [ "$(TF_ENCRYPT_STATE)" = "true" ]; then
+		git checkout terraform.tfstate.d || true
 	fi
 endef
 
 _help_init: SHELL:=$(shell which bash)
 _help_init:
-	@`# init-specific help variables`; \
-	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
-	printf "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮\n"; \
-	printf "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)\n"; \
-	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"; \
-	printf "\n"; \
+	@# init-specific help variables
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"
+	printf "$(__YELLOW)$(__SITM)Input variables for 'init'$(__RESET) 🧮\n"
+	printf "$(__YELLOW)$(__SITM)$(__DIM)(Note: these are only used with 'init' target!)$(__RESET)\n"
+	printf "$(__YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(__RESET)\n"
+	printf "\n"
 	printf "$(__MAGENTA)<WORKSPACE>                    $(__TF_ICON) $(_TF) workspace to (potentially create and) switch to\n"
 
 _init: SHELL:=$(shell which bash)
 _init:
-	@$(call tfstate_decrypt,); \
-	printf "$(__BOLD)Initializing tofu...$(__RESET)\n"; \
+	@$(call tfstate_decrypt,)
+	printf "$(__BOLD)Initializing tofu...$(__RESET)\n"
 	$(_TF) init \
 		-reconfigure \
 		-input=false \
 		-force-copy \
 		-lock=true \
-		-upgrade; \
-	`# check/switch workspace`; \
-	printf "$(__BOLD)Checking tofu workspace...$(__RESET)\n"; \
-	_CURRENT_WORKSPACE=$$($(_TF) workspace show | tr -d '[:space:]'); \
-	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then \
-		printf "$(__BOLD)Switching to workspace ($(WORKSPACE))$(__RESET)\n"; \
-		$(_TF) workspace select -or-create $(WORKSPACE); \
-	else \
-		printf "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_WORKSPACE})$(__RESET)\n"; \
-	fi; \
-	`# Initialize tflint`; \
-	if [ -f ".tflint.hcl" ]; then \
-		printf "$(__BOLD)Initializing tflint...$(__RESET)\n"; \
-		tflint --init; \
-	fi; \
-	`# checkout state files to re-encrypt them`; \
-	$(call tfstate_checkout,); \
-	`# done`; \
-	printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"; \
-	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"; \
-	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what tofu thinks it will do when applying changes,$(__RESET)\n"; \
-	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"; \
+		-upgrade
+	# check/switch workspace
+	printf "$(__BOLD)Checking tofu workspace...$(__RESET)\n"
+	_CURRENT_WORKSPACE=$$($(_TF) workspace show | tr -d '[:space:]')
+	if [ ! -z $(WORKSPACE) ] && [ "$(WORKSPACE)" != "$${_CURRENT_WORKSPACE}" ]; then
+		printf "$(__BOLD)Switching to workspace ($(WORKSPACE))$(__RESET)\n"
+		$(_TF) workspace select -or-create $(WORKSPACE)
+	else
+		printf "$(__BOLD)$(__CYAN)Using workspace ($${_CURRENT_WORKSPACE})$(__RESET)\n"
+	fi
+	# Initialize tflint
+	if [ -f ".tflint.hcl" ]; then
+		printf "$(__BOLD)Initializing tflint...$(__RESET)\n"
+		tflint --init
+	fi
+	# checkout state files to re-encrypt them
+	$(call tfstate_checkout,)
+	# done
+	printf "$(__BOLD)$(__GREEN)Done initializing tofu$(__RESET)\n"
+	printf "$(__BOLD)$(__CYAN)You can now run other commands, for example:$(__RESET)\n"
+	printf "$(__BOLD)$(__CYAN)run $(__DIM)$(__BLINK)make plan$(__RESET) $(__BOLD)$(__CYAN)to preview what tofu thinks it will do when applying changes,$(__RESET)\n"
+	printf "$(__BOLD)$(__CYAN)or $(__DIM)$(__BLINK)make help$(__RESET) $(__BOLD)$(__CYAN)to see all available make targets$(__RESET)\n"
 	$(call tfstate_encrypt,)
 
 _test: SHELL:=/bin/bash
 _test:
-	@`# suppress target contents output`; \
-	_GIT_STATUS=$$(git status --porcelain --untracked-files=no); \
-	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]'); \
-	if [ -n "$${_GIT_STATUS}" ]; then \
-		printf "$(__BOLD)$(__RED)Working directory has uncommitted changes. Commit or stash your changes before proceeding!$(__RESET)\n"; \
-		exit 1; \
-	elif [ "$${_GIT_CURRENT_BRANCH}" = "$(__GIT_DEFAULT_BRANCH)" ]; then \
-		printf "$(__BOLD)$(__RED)Unable to proceed in a default git branch. Switch to another branch before proceeding$(__RESET)\n"; \
-		exit 1; \
-	fi; \
-	_INITIAL_WORKSPACE=$$($(_TF) workspace show | tr -d '[:space:]'); \
-	_TEMP_WORKSPACE="test-$$(uuidgen | cut -d '-' -f 1)"; \
-	`# use latest changes in default, upstream branch as baseline`; \
-	git pull origin $(__GIT_DEFAULT_BRANCH) && git checkout origin/$(__GIT_DEFAULT_BRANCH); \
-	`# ensure vars and inputs are available for testing`; \
-	_initial_vars_file_path="vars/$${_INITIAL_WORKSPACE}.tfvars"; \
-	[ -f "$${_initial_vars_file_path}" ] && cp "$${_initial_vars_file_path}" "vars/$${_TEMP_WORKSPACE}.tfvars"; \
-	[ -f "$${_initial_vars_file_path}.sops" ] && cp "$${_initial_vars_file_path}.sops" "vars/$${_TEMP_WORKSPACE}.tfvars.sops"; \
-	[ -f "inputs/${_INITIAL_WORKSPACE}" ] && cp -r "inputs/$${_INITIAL_WORKSPACE}" "inputs/$${_TEMP_WORKSPACE}"; \
-	`# init`; \
-	$(MAKE) init NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
-	`# check if we're running in a temp workspace`; \
-	_CURRENT_WORKSPACE=$$($(_TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
-		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
-		exit 1; \
-	fi; \
-	`# apply against origin baseline`; \
-	$(MAKE) apply NON_INTERACTIVE=true; \
-	`# switch back to initial branch`; \
-	git switch -; \
-	`# re-initialize tofu to pull latest modules, providers, etc from the changeset under test`; \
-	$(MAKE) init NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"; \
-	`# check if we're running in a temp workspace`; \
-	_CURRENT_WORKSPACE=$$($(_TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then \
-		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"; \
-		exit 1; \
-	fi; \
-	`# apply to test the changeset`; \
-	$(MAKE) apply NON_INTERACTIVE=true; \
-	printf "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)\n"; \
-	`# cleanup`; \
-	if [ "$(NON_INTERACTIVE)" = "true" ]; then \
-		$(MAKE) destroy; \
-		$(_TF) workspace select "$${_INITIAL_WORKSPACE}"; \
-		$(_TF) workspace delete --force "$${_TEMP_WORKSPACE}"; \
-	fi; \
+	@# suppress target contents output
+	_GIT_STATUS=$$(git status --porcelain --untracked-files=no)
+	_GIT_CURRENT_BRANCH=$$(git rev-parse --abbrev-ref HEAD | tr -d '[:space:]')
+	if [ -n "$${_GIT_STATUS}" ]; then
+		printf "$(__BOLD)$(__RED)Working directory has uncommitted changes. Commit or stash your changes before proceeding!$(__RESET)\n"
+		exit 1
+	elif [ "$${_GIT_CURRENT_BRANCH}" = "$(__GIT_DEFAULT_BRANCH)" ]; then
+		printf "$(__BOLD)$(__RED)Unable to proceed in a default git branch. Switch to another branch before proceeding$(__RESET)\n"
+		exit 1
+	fi
+	_INITIAL_WORKSPACE=$$($(_TF) workspace show | tr -d '[:space:]')
+	_TEMP_WORKSPACE="test-$$(uuidgen | cut -d '-' -f 1)"
+	# use latest changes in default, upstream branch as baseline
+	git pull origin $(__GIT_DEFAULT_BRANCH) && git checkout origin/$(__GIT_DEFAULT_BRANCH)
+	# ensure vars and inputs are available for testing
+	_initial_vars_file_path="vars/$${_INITIAL_WORKSPACE}.tfvars"
+	[ -f "$${_initial_vars_file_path}" ] && cp "$${_initial_vars_file_path}" "vars/$${_TEMP_WORKSPACE}.tfvars"
+	[ -f "$${_initial_vars_file_path}.sops" ] && cp "$${_initial_vars_file_path}.sops" "vars/$${_TEMP_WORKSPACE}.tfvars.sops"
+	[ -f "inputs/${_INITIAL_WORKSPACE}" ] && cp -r "inputs/$${_INITIAL_WORKSPACE}" "inputs/$${_TEMP_WORKSPACE}"
+	# init
+	$(MAKE) init NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"
+	# check if we're running in a temp workspace
+	_CURRENT_WORKSPACE=$$($(_TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then
+		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"
+		exit 1
+	fi
+	# apply against origin baseline
+	$(MAKE) apply NON_INTERACTIVE=true
+	# switch back to initial branch
+	git switch -
+	# re-initialize tofu to pull latest modules, providers, etc from the changeset under test
+	$(MAKE) init NON_INTERACTIVE=true WORKSPACE="$${_TEMP_WORKSPACE}"
+	# check if we're running in a temp workspace
+	_CURRENT_WORKSPACE=$$($(_TF) workspace show | xargs) && if [ "$${_CURRENT_WORKSPACE}" != "$${_TEMP_WORKSPACE}" ]; then
+		printf "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_WORKSPACE})$(__RESET)\n"
+		exit 1
+	fi
+	# apply to test the changeset
+	$(MAKE) apply NON_INTERACTIVE=true
+	printf "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)\n"
+	# cleanup
+	if [ "$(NON_INTERACTIVE)" = "true" ]; then
+		$(MAKE) destroy
+		$(_TF) workspace select "$${_INITIAL_WORKSPACE}"
+		$(_TF) workspace delete --force "$${_TEMP_WORKSPACE}"
+	fi
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
-	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-		$(MAKE) destroy; \
-	fi; \
+	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then
+		$(MAKE) destroy
+	fi
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_WORKSPACE}) workspace and delete ($${_TEMP_WORKSPACE}) workspace? [y/Y]: $(__RESET)" ANSWER && \
-	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then \
-		$(_TF) workspace select "$${_INITIAL_WORKSPACE}"; \
-		$(_TF) workspace delete --force "$${_TEMP_WORKSPACE}"; \
-	fi; \
-	`# checkout state files to re-encrypt them`; \
+	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then
+		$(_TF) workspace select "$${_INITIAL_WORKSPACE}"
+		$(_TF) workspace delete --force "$${_TEMP_WORKSPACE}"
+	fi
+	# checkout state files to re-encrypt them
 	$(call tfstate_checkout,)
