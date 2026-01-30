@@ -56,7 +56,7 @@ TF_CONVERGE_FROM ?=
 TF_PLAN          ?=
 # Import resource address and ID
 TF_RES_ADDR      ?=
-TF_RES_ID        ?= 
+TF_RES_ID        ?=
 # Encrypt state file with sops
 TF_ENCRYPT_STATE  := true
 # sops|tofu
@@ -80,79 +80,79 @@ NO_TERM         ?=
 #                                             FUNCTIONS
 
 define tfvars
-	@enc_tfvars_file=''; \
-	rm -f terraform.tfvars 2>/dev/null || true; \
-	touch terraform.tfvars; \
-	if [ -f terraform.tfvars.sops ]; then \
-		enc_tfvars_file='terraform.tfvars.sops'; \
-	fi; \
-	if [ -n "$${enc_tfvars_file}" ]; then \
-		if ! command -v sops &> /dev/null; then \
-			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
-		else \
-			if [ "$(__BACKUP_TFVARS)" == "true" ] && [ -f terraform.tfvars ]; then \
-				cp terraform.tfvars{,.bak.$$(date +%s%N)}; \
-			fi; \
-			sops decrypt "$${enc_tfvars_file}" > terraform.tfvars; \
-		fi; \
-	fi; \
-	search_string="$(WORKSPACE)"; \
+	@enc_tfvars_file=''
+	rm -f terraform.tfvars 2>/dev/null || true
+	touch terraform.tfvars
+	if [ -f terraform.tfvars.sops ]; then
+		enc_tfvars_file='terraform.tfvars.sops'
+	fi
+	if [ -n "$${enc_tfvars_file}" ]; then
+		if ! command -v sops &> /dev/null; then
+			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"
+		else
+			if [ "$(__BACKUP_TFVARS)" == "true" ] && [ -f terraform.tfvars ]; then
+				cp terraform.tfvars{,.bak.$$(date +%s%N)}
+			fi
+			sops decrypt "$${enc_tfvars_file}" > terraform.tfvars
+		fi
+	fi
+	search_string="$(WORKSPACE)"
 	perl -i -pe 'if (m/#\s*'"$${search_string}"'$$/) { \
 		if (m/^\s*#\s*/) { \
-				s/^\s*#\s*//; \
+				s/^\s*#\s*//
 		} else { \
-				s/^/# /; \
+				s/^/# /
 		} \
-	}' terraform.tfvars; \
-	enc_ws_tfvars_file='$(__TFVARS_PATH).sops'; \
-	if [ -f "$${enc_ws_tfvars_file}" ]; then \
-		if ! command -v sops &> /dev/null; then \
-			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"; \
-		else \
-			sops decrypt "$${enc_ws_tfvars_file}" >> terraform.tfvars; \
-		fi; \
+	}' terraform.tfvars
+	enc_ws_tfvars_file='$(__TFVARS_PATH).sops'
+	if [ -f "$${enc_ws_tfvars_file}" ]; then
+		if ! command -v sops &> /dev/null; then
+			printf "$(__BOLD)$(__YELLOW)Warning: sops is not installed$(__RESET)\n"
+		else
+			sops decrypt "$${enc_ws_tfvars_file}" >> terraform.tfvars
+		fi
 	fi
 endef
 
 define tfstate_encrypt
-	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
-		printf "$(__BOLD)$(__GREEN)Encrypting tfstate files$(__RESET)\n"; \
-		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = false ]; then \
-			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
-		else \
+	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then
+		printf "$(__BOLD)$(__GREEN)Encrypting tfstate files$(__RESET)\n"
+		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = false ]; then
+			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH)
+		else
 			printf "$(__DIM)$(__TFSTATE_PATH) already encrypted or does not exist\n$(__RESET)"
-		fi; \
-		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = false ]; then \
-			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
-		else \
+		fi
+		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = false ]; then
+			sops encrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH)
+		else
 			printf "$(__DIM)$(__TFSTATE_BACKUP_PATH) already encrypted or does not exist\n$(__RESET)"
-		fi; \
-	else \
-		printf "$(__BOLD)$(__YELLOW)Skipping tfstate encryption$(__RESET)\n"; \
+		fi
+	else
+		printf "$(__BOLD)$(__YELLOW)Skipping tfstate encryption$(__RESET)\n"
 	fi
 endef
 
 define tfstate_decrypt
-	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
-		printf "$(__BOLD)$(__GREEN)Decrypting tfstate files$(__RESET)\n"; \
-		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = true ]; then \
-			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH); \
-		else \
+	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then
+		printf "$(__BOLD)$(__GREEN)Decrypting tfstate files$(__RESET)\n"
+		if [ -f "$(__TFSTATE_PATH)" ] && [ $$(cat $(__TFSTATE_PATH) | jq 'has("sops")') = true ]; then
+			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_PATH)
+		else
 			printf "$(__DIM)$(__TFSTATE_PATH) already decrypted or does not exist\n$(__RESET)"
-		fi; \
-		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = true ]; then \
-			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH); \
-		else \
+		fi
+		if [ -f "$(__TFSTATE_BACKUP_PATH)" ] && [ $$(cat $(__TFSTATE_BACKUP_PATH) | jq 'has("sops")') = true ]; then
+			sops decrypt --input-type=json --output-type=json -i $(__TFSTATE_BACKUP_PATH)
+		else
 			printf "$(__DIM)$(__TFSTATE_BACKUP_PATH) already decrypted or does not exist\n$(__RESET)"
-		fi; \
-	else \
-		printf "$(__BOLD)$(__YELLOW)Skipping tfstate decryption$(__RESET)\n"; \
+		fi
+	else
+		printf "$(__BOLD)$(__YELLOW)Skipping tfstate decryption$(__RESET)\n"
 	fi
 endef
 
 define tfstate_checkout
-	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then \
-		git checkout terraform.tfstate.d || true; \
+	if [ "$(TFSTATE_ENCRYPT)" = "true" ]; then
+		git checkout terraform.tfstate.d || true
 	fi
 endef
 
