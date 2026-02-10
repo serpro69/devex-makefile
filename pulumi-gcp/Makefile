@@ -446,7 +446,7 @@ test: ## Run some drills before we plunder! ⚔️  🏹
 	cp vars/$${_INITIAL_STACK}.tfvars vars/$${_TEMP_STACK}.tfvars
 	if [ -f "inputs/${{_INITIAL_STACK}}" ]; then cp -r inputs/$${_INITIAL_STACK} inputs/$${_TEMP_STACK}; fi
 	# init
-	make init __ENVIRONMENT="test" NON_INTERACTIVE=true STACK="$${_TEMP_STACK}"
+	$(MAKE) init __ENVIRONMENT="test" NON_INTERACTIVE=true STACK="$${_TEMP_STACK}"
 	# check if we're running in a temp workspace
 	_CURRENT_STACK=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_STACK}" != "$${_TEMP_STACK}" ]; then
 		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_STACK})$(__RESET)"
@@ -458,11 +458,11 @@ test: ## Run some drills before we plunder! ⚔️  🏹
 		exit 1
 	fi
 	# apply against origin baseline
-	make apply NON_INTERACTIVE=true
+	$(MAKE) apply NON_INTERACTIVE=true
 	# switch back to initial branch
 	git switch -
 	# re-initialize terraform to pull latest modules, providers, etc from the changeset under test
-	make init __ENVIRONMENT="test" NON_INTERACTIVE=true STACK="$${_TEMP_STACK}"
+	$(MAKE) init __ENVIRONMENT="test" NON_INTERACTIVE=true STACK="$${_TEMP_STACK}"
 	# check if we're running in a temp workspace
 	_CURRENT_STACK=$$(terraform workspace show | xargs) && if [ "$${_CURRENT_STACK}" != "$${_TEMP_STACK}" ]; then
 		echo "$(__BOLD)$(__RED)Current workspace does equal ($${_TEMP_STACK})$(__RESET)"
@@ -474,19 +474,19 @@ test: ## Run some drills before we plunder! ⚔️  🏹
 		exit 1
 	fi
 	# apply to test the changeset
-	make apply NON_INTERACTIVE=true
+	$(MAKE) apply NON_INTERACTIVE=true
 	# check if there are any changes pending afterwards
 	# TODO: make preview NON_INTERACTIVE=true PL_ARGS='--expect-no-changes'
 	echo "$(__BOLD)$(__GREEN)$(__BLINK)All tests passed!$(__RESET)"
 	# cleanup
 	if [ "$(NON_INTERACTIVE)" = "true" ]; then
-		make destroy PL_ARGS='--remove'
+		$(MAKE) destroy PL_ARGS='--remove'
 		pulumi stack select "$${_INITIAL_STACK}"
 	fi
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Would you like to destroy the test infrastructure? [y/Y]: $(__RESET)" ANSWER && \
 	if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then
-		make destroy
+		$(MAKE) destroy
 	fi
 	[ ! "$(NON_INTERACTIVE)" = "true" ] && \
 	read -p "$(__BOLD)$(__MAGENTA)Switch back to ($${_INITIAL_STACK}) workspace and delete ($${_TEMP_STACK}) workspace? [y/Y]: $(__RESET)" ANSWER && \
