@@ -48,8 +48,9 @@ QUOTA_PROJECT              = $(GCP_PREFIX)-tfstate-$(GCP_POSTFIX)
 
 ### Environment options
 
+__BUCKET_NAME        ?=
 __BUCKET_DIR          =  terraform/state
-__BUCKET_SUBDIR       ?=
+__BUCKET_SUBDIR      ?=
 __PROD_BUCKET_SUBDIR  =  prod
 __TEST_BUCKET_SUBDIR  =  test
 __GIT_DEFAULT_BRANCH  =  main
@@ -167,7 +168,10 @@ _init: SHELL:=$(shell which bash)
 _init:
 	@# Configure GCS backend
 	printf "$(__BOLD)Configuring the $(_TF) backend...$(__RESET)\n"
-	_BUCKET_NAME=$$($(_GCLOUD) storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]')
+	_BUCKET_NAME=$(__BUCKET_NAME)
+	if [ -z "$${_BUCKET_NAME}" ]; then
+		_BUCKET_NAME=$$($(_GCLOUD) storage buckets list --project $(QUOTA_PROJECT) --format='get(name)' | grep 'tfstate' | head -n1 | tr -d '[:space:]')
+	fi
 	_BUCKET_SUBDIR=$(__TEST_BUCKET_SUBDIR)
 	_COLOR=$(__GREEN)
 	if [ ! $(__BUCKET_SUBDIR) = "" ]; then
