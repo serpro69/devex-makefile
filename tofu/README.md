@@ -97,6 +97,10 @@ Input variables 🧮
                                Values: (sops)
                                Default: sops
 
+<CONFFILE>                      Path to an conf file with these input variables
+                               (use to set some or all input variables for this makefile)
+                               (if exists, takes precedence over ENVFILE)
+                               Default: ./.conf
 <ENVFILE>                       Path to an env file with these input variables
                                (use to set some or all input variables for this makefile)
                                Default: ./.env

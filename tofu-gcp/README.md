@@ -3,6 +3,7 @@
 ![TF](https://img.shields.io/badge/OpenTofu%20Version-%3E%3D1.8.x-yellow.svg)
 
 <!--toc:start-->
+
 - [About](#about)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -110,6 +111,10 @@ Input variables 🧮
                                Default: tofu
 <TF_ENCRYPTION_PASS>            Passphrase for tofu-based encryption method
 
+<CONFFILE>                      Path to an conf file with these input variables
+                               (use to set some or all input variables for this makefile)
+                               (if exists, takes precedence over ENVFILE)
+                               Default: ./.conf
 <ENVFILE>                       Path to an env file with these input variables
                                (use to set some or all input variables for this makefile)
                                Default: ./.env
