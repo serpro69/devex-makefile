@@ -109,7 +109,9 @@ endif
 
 # NOTE: not sure why I need to do this here, after gcloud.mk include, but otherwise it fails with:
 # gmake: *** No rule to make target '/Users/sergio/Projects/test/gcloud.mk'.  Stop.
-ifneq ($(wildcard $(ENVFILE)),)
+ifneq ($(wildcard $(CONFFILE)),)
+	include $(CONFFILE)
+else ifneq ($(wildcard $(ENVFILE)),)
 	include $(ENVFILE)
 endif
 
@@ -359,6 +361,11 @@ help: ## Save our souls! 🛟
 		printf "                               $(__SITM)Values: (sops)$(__RESET)\n"
 		printf "                               $(__SITM)Default: sops$(__RESET)\n"
 	fi
+	printf "\n"
+	printf "$(__MAGENTA)<CONFFILE>                     $(__YELLOW)$(__RESET) Path to an conf file with these input variables\n"
+	printf "                               $(__SITM)(use to set some or all input variables for this makefile)$(__RESET)\n"
+	printf "                               $(__SITM)(if exists, takes precedence over ENVFILE)$(__RESET)\n"
+	printf "                               $(__SITM)Default: ./.conf$(__RESET)\n"
 	printf "\n"
 	printf "$(__MAGENTA)<ENVFILE>                      $(__YELLOW)$(__RESET) Path to an env file with these input variables\n"
 	printf "                               $(__SITM)(use to set some or all input variables for this makefile)$(__RESET)\n"

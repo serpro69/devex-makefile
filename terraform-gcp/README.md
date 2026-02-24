@@ -3,6 +3,7 @@
 ![TF](https://img.shields.io/badge/Terraform%20Version-%3E%3D1.0.0-purple.svg)
 
 <!--toc:start-->
+
 - [About](#about)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -21,7 +22,7 @@ This is my [terraform](https://www.terraform.io/) workflow for every terraform p
 I usually add this project as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) to the terraform [root module](https://developer.hashicorp.com/terraform/language/modules#the-root-module) directory, and then create a symlink to the makefile, for example:
 
 ```bash
-# add submodule 
+# add submodule
 git submodule add https://github.com/serpro69/terraform-makefile.git
 # create a symlink
 ln -s terraform-makefile/Makefile Makefile
@@ -106,6 +107,10 @@ Input variables 🧮
                                Values: (sops)
                                Default: sops
 
+<CONFFILE>                      Path to an conf file with these input variables
+                               (use to set some or all input variables for this makefile)
+                               (if exists, takes precedence over ENVFILE)
+                               Default: ./.conf
 <ENVFILE>                       Path to an env file with these input variables
                                (use to set some or all input variables for this makefile)
                                Default: ./.env

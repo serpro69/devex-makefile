@@ -31,9 +31,10 @@ __MAKE_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 ################################################################################################
 #                                             VARIABLES
 
-### Environment
+### Configuration / Environment
 
-ENVFILE ?= $(realpath $(PWD)/.env)
+CONFFILE ?= $(realpath $(PWD)/.conf)
+ENVFILE  ?= $(realpath $(PWD)/.env)
 
 ### Terminal
 
