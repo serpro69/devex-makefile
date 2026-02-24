@@ -63,7 +63,7 @@ TF_ENCRYPTION_PASS       ?=
 
 ### Environment options
 
-__ENVIRONMENT        ?= $(shell cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix // ""' | cut -d '/' -f 3)
+__ENVIRONMENT        ?= $(shell cat .terraform/terraform.tfstate | jq -r '.backend.config.prefix // ""' | awk 'BEGIN { FS = "/" }; { print $NF }')
 __TFVARS_PATH         =  vars/$(WORKSPACE).tfvars
 # backup terraform.tfvars before overwriting it with decrypted content
 __BACKUP_TFVARS       =  false
