@@ -179,15 +179,14 @@ _init:
 	elif [ ! "$(__ENVIRONMENT)" = "" ]; then
 		_BUCKET_SUBDIR="$(__ENVIRONMENT)"
 	fi
-	if [ "$${_BUCKET_SUBDIR}" = "prod" ]; then
-		_COLOR=$(__RED)
-	fi
 	if [ "$(__BUCKET_SUBDIR)" = "" ] && [ "$(__ENVIRONMENT)" = "" ] && [ ! "$(NON_INTERACTIVE)" = "true" ]; then
 		read -p "$(__BOLD)$(__MAGENTA)Use $(__BLINK)$(__YELLOW)production$(__RESET) $(__BOLD)$(__MAGENTA)state bucket subdir? [y/Y]: $(__RESET)" ANSWER && \
 		if [ "$${ANSWER}" = "y" ] || [ "$${ANSWER}" = "Y" ]; then
 			_BUCKET_SUBDIR="prod"
-			_COLOR=$(__RED)
 		fi
+	fi
+	if [ "$${_BUCKET_SUBDIR}" = "prod" ] || [ "$${__ENVIRONMENT}" = "prod" ]; then
+		_COLOR=$(__RED)
 	fi
 	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"
 	printf "$(__BOLD)Using bucket ($(__DIM)$${_BUCKET_NAME}$(__RESET)) $(__BOLD)with path ($(__DIM)$${_COLOR}$${_BUCKET_PATH}$(__RESET)$(__BOLD))$(__RESET)\n"
