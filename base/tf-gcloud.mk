@@ -185,7 +185,7 @@ _init:
 			_BUCKET_SUBDIR="prod"
 		fi
 	fi
-	if [ "$${_BUCKET_SUBDIR}" = "prod" ] || [ "$${__ENVIRONMENT}" = "prod" ]; then
+	if [ "$${_BUCKET_SUBDIR}" = "prod" ] || [ "$(__ENVIRONMENT)" = "prod" ]; then
 		_COLOR=$(__RED)
 	fi
 	_BUCKET_PATH="$(__BUCKET_DIR)/$${_BUCKET_SUBDIR}"
