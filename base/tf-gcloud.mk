@@ -23,7 +23,7 @@
 .ONESHELL:
 .PHONY: _help_init _init-gcp-config _init-gcp-project _init-adc _init
 
-.SHELL      := $(shell which bash)
+SHELL       := $(shell which bash)
 .SHELLFLAGS := -ec
 
 ################################################################################################

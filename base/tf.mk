@@ -23,7 +23,7 @@
 .ONESHELL:
 .PHONY: apply clean destroy format help init plan show state test validate import
 
-.SHELL      := $(shell which bash)
+SHELL       := $(shell which bash)
 .SHELLFLAGS := -ec
 
 __MAKE_DIR  ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))

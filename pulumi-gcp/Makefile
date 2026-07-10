@@ -40,7 +40,7 @@
 ####################################################################################################################################
 
 .ONESHELL:
-.SHELL:=/bin/bash
+SHELL       :=/bin/bash
 .SHELLFLAGS := -ec
 .PHONY: up clean destroy format help init preview preview-destroy test validate
 # https://stackoverflow.com/a/63771055

@@ -23,7 +23,7 @@
 .ONESHELL:
 .PHONY: _help_init _init
 
-.SHELL      := $(shell which bash)
+SHELL       := $(shell which bash)
 .SHELLFLAGS := -ec
 
 __MAKE_DIR  ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
