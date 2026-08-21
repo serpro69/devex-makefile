@@ -1,77 +1,74 @@
 # devex-makefile
 
-<!--toc:start-->
-- [devex-makefile](#devex-makefile)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [Contents](#contents)
-    - [Infrastructure as Code](#infrastructure-as-code)
-  - [License](#license)
-  - [Contribute](#contribute)
-<!--toc:end-->
+[![terraform-gcp](https://img.shields.io/badge/terraform-gcp-purple?logo=terraform&style=for-the-badge&logoSize=auto)](https://serpro69.github.io/devex-makefile/iac/terraform-gcp/)
+[![tofu-gcp](https://img.shields.io/badge/tofu-gcp-yellow?logo=opentofu&style=for-the-badge&logoSize=auto)](https://serpro69.github.io/devex-makefile/iac/tofu-gcp/)
+[![pulumi-gcp](https://img.shields.io/badge/pulumi-gcp-orange?logo=pulumi&style=for-the-badge&logoSize=auto)](https://serpro69.github.io/devex-makefile/iac/pulumi-gcp/)
+[![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=for-the-badge&logoSize=auto)](https://github.com/serpro69/devex-makefile/blob/master/LICENSE)
 
-[![pulumi-gcp](https://img.shields.io/badge/pulumi-gcp-orange?logo=pulumi&style=for-the-badge&logoSize=auto)](./pulumi-gcp)
-[![terraform-gcp](https://img.shields.io/badge/terraform-gcp-purple?logo=terraform&style=for-the-badge&logoSize=auto)](./terraform-gcp)
-[![tofu-gcp](https://img.shields.io/badge/tofu-gcp-yellow?logo=opentofu&style=for-the-badge&logoSize=auto)](./tofu-gcp)
+A collection of opinionated **Makefile recipes** for all sorts of dev things —
+built to improve the developer experience when working with various ecosystems
+and tools. 🚀
 
-[![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=for-the-badge&logoSize=auto)](LICENSE)
+> Wait… but why? 🤨
 
-A collection of Makefile recipes for... all sorts of dev things that I use personally or profesionally with the aim to improve development experience when working with various dev ecosystems and tools. 🚀
+Because `make` commands are short and easy to remember, they autocomplete, and
+they document themselves using the
+[self-documenting makefile](https://www.cmcrossroads.com/print/article/self-documenting-makefiles)
+approach. Running `make apply` or `make plan` is simply nicer than remembering
+the full `terraform apply -var-file=… -lock=true …` incantation every time. 😏
 
-> Wait... but why? 🤨
+Also, because… why not? 🤓
 
-Well... because make commands are short and easy to remember. They can be autocompleted. And you can document them easily taking the approach of [self-documenting makefiles](https://www.cmcrossroads.com/print/article/self-documenting-makefiles).
-So I usually prefer running `make test`, `make apply`, `make whatnot` over `./gradlew clean test ...`, or `terraform apply ...`, or `docker-compose up ...` etc. 😏
+## Documentation
 
-Also, because... why not? 🤓
+Full usage docs live at **<https://serpro69.github.io/devex-makefile/>**.
 
-## Installation
+## Quick start
 
-The easiest way I found to use this project is through cloning it as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules), and then creating a symlink to the necessary makefile, for example:
+Every makefile wraps a real tool with sane defaults, so your day-to-day workflow
+collapses down to a handful of memorable commands:
 
 ```bash
-# add submodule 
+make init      # prepare the working directory / backend
+make plan      # preview changes
+make apply     # apply changes
+make help      # see everything the makefile can do
+```
+
+The easiest way to use a makefile is to add this repo as a
+[git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) and symlink
+the one you want:
+
+```bash
 git submodule add https://github.com/serpro69/devex-makefile.git
-# create a symlink
 ln -s devex-makefile/terraform-gcp/Makefile Makefile
-# test it out
 make help
 ```
 
-Using a git submodule makes it easier to pull latest changes and fixes, if you're interested in those.
-
-You can, of course, just download the [raw version of Makefile](https://raw.githubusercontent.com/serpro69/devex-makefile/master/terraform-gcp/Makefile) and add it directly to your project. The choice, as they say, is yours.
-
-## Usage
-
-Each directory should usually contain a readme with usage details for a given makefile. If not - do try to run `make help`.
+See the [Installation guide](https://serpro69.github.io/devex-makefile/installation/)
+for details (including the raw-download option).
 
 ## Contents
 
 ### Infrastructure as Code
 
-- [`pulumi-gcp`](./pulumi-gcp) - recipes for working with Pulumi and the Google Cloud Platform (gcs) backend for state files
-- [`terraform-gcp`](./terraform-gcp) - recipes for working with Terraform and the Google Cloud Platform (gcs) backend for state files
-- [`tofu`](./tofu) - recipes for working with OpenTofu using the local backend for state files
-- [`tofu-gcp`](./tofu-gcp) - recipes for working with OpenTofu and the Google Cloud Platform (gcs) backend for state files
+| Makefile                                                                                | Tool                                   | State backend                 | Docs                                                              |
+| --------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| [`terraform-gcp`](https://github.com/serpro69/devex-makefile/tree/master/terraform-gcp) | [Terraform](https://www.terraform.io/) | Google Cloud Storage          | [↗](https://serpro69.github.io/devex-makefile/iac/terraform-gcp/) |
+| [`tofu-gcp`](https://github.com/serpro69/devex-makefile/tree/master/tofu-gcp)           | [OpenTofu](https://opentofu.org/)      | Google Cloud Storage          | [↗](https://serpro69.github.io/devex-makefile/iac/tofu-gcp/)      |
+| [`tofu`](https://github.com/serpro69/devex-makefile/tree/master/tofu)                   | [OpenTofu](https://opentofu.org/)      | Local (encrypted with SOPS)   | [↗](https://serpro69.github.io/devex-makefile/iac/tofu/)          |
+| [`pulumi-gcp`](https://github.com/serpro69/devex-makefile/tree/master/pulumi-gcp)       | [Pulumi](https://www.pulumi.com/)      | Google Cloud Storage or local | [↗](https://serpro69.github.io/devex-makefile/iac/pulumi-gcp/)    |
 
 ## License
 
-This code is licensed under the [MIT License](LICENSE).
-
-(c) [Særgeir](https://github.com/serpro69)
+This code is licensed under the [MIT License](https://github.com/serpro69/devex-makefile/blob/master/LICENSE).
 
 ## Contribute
 
-So, you've made it this far 🤓 Congrats! 🎉
-I've made these makefile to simplify my own workflows, but I'm happy if you've found any of this code useful as well.
-If you want to contribute anything: fixes, new commands to existing makefiles (or new makefiles altogether), customizable configuration, documentation; like, literally, anything - you should definitely do so.
+I made these makefiles to simplify my own workflows, but I'm happy if you find them useful too. Fixes, new commands, new makefiles, customizable configuration, documentation — literally anything is welcome.
 
-Steps:
-
-- Open a new issue (Totally optional. I'll accept PR's w/o having an open issue, so long as it's clear what the change is all about.)
+- Open an issue (optional — PRs without an issue are fine, as long as the change is clear).
 - Fork this repository 🍴
-- Install dependencies (I guess you already have `make` installed? 🤨)
-- Bang your head against the keyboard from frustration 😡😤🤬 (Who said coding was easy?)
-- Open a pull request once you're finished 😮‍💨
-- Profit 🤑
+- Make your change (you already have `make` installed, right? 🤨).
+- Open a pull request. 😮‍💨
+- Profit. 🤑

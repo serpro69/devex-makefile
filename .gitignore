@@ -1,2 +1,5 @@
 # sometimes used for quick testing
 vars/
+
+# mkdocs build output
+site/
