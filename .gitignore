@@ -1,5 +1,27 @@
+# ignore all hidden
+.*
+# except
+!.gitattributes
+!.gitignore
+!.gitmodules
+!.github
+!.github/**
+!.yamlfmt.yaml
+!.yamllint.yml
+!.mcp.json
+!.capy.toml
+!.sessions/
+!.arc.yml
+!docs/**/.files
+
 # sometimes used for quick testing
 vars/
 
 # mkdocs build output
 site/
+
+# AI
+.capy/**
+!.capy
+!.capy/knowledge.db
+!.capy/AGENTS.md
