@@ -1,0 +1,86 @@
+site_name: devex-makefile
+site_description: >-
+  A collection of opinionated Makefile recipes that improve the developer
+  experience when working with various dev ecosystems and tools.
+site_author: Særgeir
+site_url: https://serpro69.github.io/devex-makefile/
+
+repo_name: serpro69/devex-makefile
+repo_url: https://github.com/serpro69/devex-makefile
+edit_uri: edit/master/docs/
+
+copyright: Copyright &copy; 2024-present Særgeir
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path:
+        - .
+      check_paths: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Infrastructure as Code:
+      - Overview: iac/index.md
+      - Common concepts: iac/concepts.md
+      - terraform-gcp: iac/terraform-gcp.md
+      - tofu-gcp: iac/tofu-gcp.md
+      - tofu: iac/tofu.md
+      - pulumi-gcp: iac/pulumi-gcp.md
