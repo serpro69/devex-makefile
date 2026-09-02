@@ -23,5 +23,4 @@ site/
 # AI
 .capy/**
 !.capy
-!.capy/knowledge.db
 !.capy/AGENTS.md
