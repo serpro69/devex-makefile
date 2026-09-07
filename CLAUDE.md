@@ -1,7 +1,7 @@
-# capy — context-window routing
-
-@.capy/AGENTS.md
-
+@AGENTS.md
 
 @.claude/CLAUDE.extra.md
+
 @.claude/toolbox/CLAUDE.md
+
+@.capy/AGENTS.md
